@@ -1,0 +1,146 @@
+generator client {
+    provider = "prisma-client-js"
+}
+
+datasource db {
+    provider = "postgresql"
+    url      = env("DATABASE_URL")
+}
+
+enum Role {
+    USER
+    ADMIN
+}
+
+model User {
+    id        Int      @id @default(autoincrement())
+    email     String   @unique
+    password  String
+    name      String
+    phone     String?
+    role      Role     @default(USER)
+    createdAt DateTime @default(now())
+
+    addresses Address[]
+    cart      Cart?
+    orders    Order[]
+    reviews   Review[]
+}
+
+model Category {
+    id       Int       @id @default(autoincrement())
+    name     String    @unique
+    products Product[]
+}
+
+model Product {
+    id            Int      @id @default(autoincrement())
+    name          String
+    description   String
+    price         Float
+    stock         Int
+    imageUrl      String
+    categoryId    Int
+    category      Category @relation(fields: [categoryId], references: [id])
+    averageRating Float    @default(0)
+    reviewCount   Int      @default(0)
+    createdAt     DateTime @default(now())
+    updatedAt     DateTime @updatedAt
+
+    cartItems  CartItem[]
+    orderItems OrderItem[]
+    reviews    Review[]
+
+    @@index([name])
+    @@index([price])
+    @@index([categoryId])
+    @@index([createdAt])
+}
+
+model Cart {
+    id        Int        @id @default(autoincrement())
+    userId    Int        @unique
+    user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+    items     CartItem[]
+    updatedAt DateTime   @updatedAt
+}
+
+model CartItem {
+    id        Int     @id @default(autoincrement())
+    cartId    Int
+    cart      Cart    @relation(fields: [cartId], references: [id], onDelete: Cascade)
+    productId Int
+    product   Product @relation(fields: [productId], references: [id])
+    quantity  Int
+}
+
+model Order {
+    id              Int         @id @default(autoincrement())
+    userId          Int
+    user            User        @relation(fields: [userId], references: [id])
+    items           OrderItem[]
+    billingAddress  String
+    shippingAddress String
+    shippingMethod  String
+    shippingCost    Float
+    subtotal        Float
+    taxAmount       Float
+    total           Float
+    paymentMethod   String      @default("COD")
+    status          String      @default("pending")
+    notes           String?
+    trackingNumber  String?
+    createdAt       DateTime    @default(now())
+    updatedAt       DateTime    @updatedAt
+
+    @@index([userId])
+    @@index([createdAt])
+}
+
+model OrderItem {
+    id           Int     @id @default(autoincrement())
+    orderId      Int
+    order        Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+    productId    Int
+    product      Product @relation(fields: [productId], references: [id])
+    productName  String
+    quantity     Int
+    priceAtOrder Float
+}
+
+model Address {
+    id        Int      @id @default(autoincrement())
+    userId    Int
+    user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+    type      String
+    fullName  String
+    street    String
+    city      String
+    phone     String
+    createdAt DateTime @default(now())
+
+    @@unique([userId, type])
+}
+
+model Review {
+    id        Int      @id @default(autoincrement())
+    productId Int
+    product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+    userId    Int
+    user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+    rating    Int
+    title     String
+    comment   String
+    createdAt DateTime @default(now())
+}
+model BlogPost {
+  id        Int      @id @default(autoincrement())
+  
+  title     String
+  content   String
+  imageUrl  String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([createdAt])
+}
