@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { loadProducts, loadProjects } from '../data/catalog';
 import ProductCard from '../components/ProductCard';
@@ -37,6 +37,40 @@ export default function Home() {
       setFeaturedProjects(projects.filter((p) => p.badge === 'POPULAR').slice(0, 4));
     });
   }, []);
+  const carouselRef = useRef(null);
+
+  // Auto-advance the featured carousel: slide to the next card every 8s
+  // Auto-advance the featured carousel: slide to the next card every 5s
+  useEffect(() => {
+    if (featuredProducts.length === 0) return;
+    const timer = setInterval(() => {
+      const el = carouselRef.current;
+      if (!el) return;
+      const card = el.querySelector('.product-card');
+      if (!card) return;
+      const step = card.offsetWidth + 20; // card width + gap
+      const maxScroll = el.scrollWidth - el.clientWidth;
+      if (el.scrollLeft + step > maxScroll + 5) {
+        el.scrollTo({ left: 0, behavior: 'smooth' }); // loop back to start
+      } else {
+        el.scrollBy({ left: step, behavior: 'smooth' });
+      }
+    }, 5000);
+    return () => clearInterval(timer);
+  }, [featuredProducts]);
+
+  // Manual prev/next — used by the carousel arrow buttons
+  const scrollCarousel = (dir) => {
+    const el = carouselRef.current;
+    if (!el) return;
+    const card = el.querySelector('.product-card');
+    if (!card) return;
+    const step = card.offsetWidth + 20;
+    const current = Math.round(el.scrollLeft / step);
+    const maxScroll = el.scrollWidth - el.clientWidth;
+    const target = Math.min(Math.max((current + dir) * step, 0), maxScroll);
+    el.scrollTo({ left: target, behavior: 'smooth' });
+  };
 
   return (
     <>
@@ -90,15 +124,23 @@ export default function Home() {
         </section>
 
         <section className="section">
-          <div className="section-head">
+          <div className="section-head section-head-center">
             <div>
               <h2>Featured Products</h2>
               <p>The season's most sought-after tech — from 3D printers to Arduino-based DIY builds.</p>
             </div>
             <a className="section-link" href="/products" onClick={(e) => { e.preventDefault(); navigate('/products'); }}>View All →</a>
           </div>
-          <div className="product-grid">
-            {featuredProducts.map((p) => <ProductCard key={p.id} product={p} />)}
+          <div className="carousel-wrap">
+            <button className="carousel-arrow prev" onClick={() => scrollCarousel(-1)} aria-label="Previous">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="15 18 9 12 15 6" /></svg>
+            </button>
+            <div className="product-carousel" ref={carouselRef}>
+              {featuredProducts.map((p) => <ProductCard key={p.id} product={p} />)}
+            </div>
+            <button className="carousel-arrow next" onClick={() => scrollCarousel(1)} aria-label="Next">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="9 18 15 12 9 6" /></svg>
+            </button>
           </div>
         </section>
 
