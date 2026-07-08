@@ -73,7 +73,8 @@ export default function Home() {
   // ─── Featured Products carousel ───
   const carouselRef = useRef(null);
 
-  // Auto-advance: slide to the next card every 5s
+
+  // Auto-advance the featured carousel: slide to the next card every 5s
   useEffect(() => {
     if (featuredProducts.length === 0) return;
     const timer = setInterval(() => {
