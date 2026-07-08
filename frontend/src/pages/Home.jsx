@@ -6,7 +6,6 @@ import ProjectCard from '../components/ProjectCard';
 import BorderGlow from '../components/BorderGlow';
 import SpotlightCard from '../components/SpotlightCard';
 
-
 const FEATURES = [
   ['Same-Day Dispatch', "Order before 3 PM and your gear ships the same day. We don't believe in waiting when you're excited about new tech."],
   ['2-Year Warranty', "Every device sold on Vision Giants includes a full 2-year manufacturer's warranty — no asterisks, no hidden terms."],
@@ -15,7 +14,7 @@ const FEATURES = [
   ['30-Day Returns', 'Changed your mind? Return anything within 30 days, no questions asked. Full refund, hassle-free.'],
   ['Expert Support 24/7', 'Real people, real answers — anytime. Our tech-savvy support team is on call around the clock for you.'],
 ];
-// Temporary placeholder projects so the carousel overflows — remove once real data is added
+
 const DUMMY_PROJECTS = [
   { id: 'dummy-1', emoji: '🚁', badge: 'POPULAR', category: 'Drone Projects', name: 'FPV Racing Drone Build Kit', rating: 4.7, reviews: 89, difficulty: 'Advanced', duration: '5–6 Weeks', description: 'Placeholder project — real data coming soon.' },
   { id: 'dummy-2', emoji: '🌡️', badge: 'POPULAR', category: 'IoT Projects', name: 'ESP32 Weather Station', rating: 4.5, reviews: 134, difficulty: 'Beginner', duration: '1–2 Weeks', description: 'Placeholder project — real data coming soon.' },
@@ -25,8 +24,6 @@ const DUMMY_PROJECTS = [
   { id: 'dummy-6', emoji: '💧', badge: 'POPULAR', category: 'Smart Home Projects', name: 'Automatic Plant Watering System', rating: 4.5, reviews: 77, difficulty: 'Beginner', duration: '1–2 Weeks', description: 'Placeholder project — real data coming soon.' },
 ];
 
-// TEMP: placeholder laser modules so the section shows before real data arrives.
-// Remove once products.json contains real "Laser Modules" items.
 const DUMMY_LASERS = [
   { id: 'laser-1', emoji: '🔦', badge: '-14%', category: 'Laser Modules', name: '40W Fixed Focus Laser Head 450nm TTL', rating: 4.6, reviews: 42, price: 40000, originalPrice: 46500, description: 'Placeholder — real data coming soon.' },
   { id: 'laser-2', emoji: '🔦', badge: '-28%', category: 'Laser Modules', name: '20W Laser Module 450nm Engraving Head', rating: 4.7, reviews: 61, price: 25500, originalPrice: 35500, description: 'Placeholder — real data coming soon.' },
@@ -45,90 +42,46 @@ const MARQUEE = [
   '0% Instalment Plans Available',
 ];
 
-// Temporary mock data for the New Arrivals section — swap for a real
-// API call (e.g. loadProducts/loadProjects filtered by newest date)
-// once the backend exposes an endpoint for it.
 const MOCK_NEW_ARRIVALS = [
-  {
-    id: 'na-1',
-    type: 'product',
-    name: 'ESP32-CAM WiFi Module',
-    price: 2200,
-    image: '',
-    badge: 'NEW',
-  },
-  {
-    id: 'na-2',
-    type: 'product',
-    name: 'NEMA 17 Stepper Motor',
-    price: 1450,
-    image: '',
-    badge: 'NEW',
-  },
-  {
-    id: 'na-3',
-    type: 'project',
-    name: 'Line-Following Robot Kit',
-    price: 6800,
-    image: '',
-    badge: 'NEW',
-  },
-  {
-    id: 'na-4',
-    type: 'product',
-    name: '4K Mini Projector Module',
-    price: 15500,
-    image: '',
-    badge: 'NEW',
-  },
-  {
-    id: 'na-5',
-    type: 'project',
-    name: 'Smart Home Automation Hub',
-    price: 9200,
-    image: '',
-    badge: 'NEW',
-  },
+  { id: 'na-1', type: 'product', name: 'ESP32-CAM WiFi Module', price: 2200, image: '', badge: 'NEW' },
+  { id: 'na-2', type: 'product', name: 'NEMA 17 Stepper Motor', price: 1450, image: '', badge: 'NEW' },
+  { id: 'na-3', type: 'project', name: 'Line-Following Robot Kit', price: 6800, image: '', badge: 'NEW' },
+  { id: 'na-4', type: 'product', name: '4K Mini Projector Module', price: 15500, image: '', badge: 'NEW' },
+  { id: 'na-5', type: 'project', name: 'Smart Home Automation Hub', price: 9200, image: '', badge: 'NEW' },
 ];
 
 export default function Home() {
   const [categories, setCategories] = useState([]);
   const [featuredProducts, setFeaturedProducts] = useState([]);
   const [featuredProjects, setFeaturedProjects] = useState([]);
-<<<<<<< HEAD
   const [newArrivals, setNewArrivals] = useState([]);
-=======
   const [laserProducts, setLaserProducts] = useState([]);
->>>>>>> dcf4a222298338d2c8aa6d90c8afd54000bb0619
   const [hoveredFeature, setHoveredFeature] = useState(null);
   const [pressedFeature, setPressedFeature] = useState(null);
   const navigate = useNavigate();
+
+  // ─── Carousels References ───
+  const carouselRef = useRef(null);
+  const catCarouselRef = useRef(null);
+  const newArrivalsRef = useRef(null);
+  const projectCarouselRef = useRef(null);
+  const laserCarouselRef = useRef(null);
 
   useEffect(() => {
     loadProducts().then(({ categories, products }) => {
       setCategories(categories);
       setFeaturedProducts(products.slice(0, 8));
-      // Laser Modules category — matches by category name. Falls back to
-      // dummy cards until real laser products exist in products.json.
       const lasers = products.filter((p) => (p.category || '').toLowerCase().includes('laser'));
       setLaserProducts((lasers.length > 0 ? lasers : DUMMY_LASERS).slice(0, 10));
     });
     loadProjects().then(({ projects }) => {
       const popular = projects.filter((p) => p.badge === 'POPULAR');
-      // TEMP: pad with dummy cards so the carousel scrolls — remove when real data exists
       setFeaturedProjects([...popular, ...DUMMY_PROJECTS].slice(0, 10));
     });
-    // Mock data for now — replace with a real "new arrivals" fetch later
     setNewArrivals(MOCK_NEW_ARRIVALS);
   }, []);
 
-  // ─── Featured Products carousel ───
-  const carouselRef = useRef(null);
-  const catCarouselRef = useRef(null);
-  const newArrivalsRef = useRef(null);
-
-
-  // Auto-advance the featured carousel: slide to the next card every 5s
+  // Auto-advance the featured carousel
   useEffect(() => {
     if (featuredProducts.length === 0) return;
     const timer = setInterval(() => {
@@ -136,10 +89,10 @@ export default function Home() {
       if (!el) return;
       const card = el.querySelector('.product-card');
       if (!card) return;
-      const step = card.offsetWidth + 20; // card width + gap
+      const step = card.offsetWidth + 20;
       const maxScroll = el.scrollWidth - el.clientWidth;
       if (el.scrollLeft + step > maxScroll + 5) {
-        el.scrollTo({ left: 0, behavior: 'smooth' }); // loop back to start
+        el.scrollTo({ left: 0, behavior: 'smooth' });
       } else {
         el.scrollBy({ left: step, behavior: 'smooth' });
       }
@@ -147,16 +100,16 @@ export default function Home() {
     return () => clearInterval(timer);
   }, [featuredProducts]);
 
-  // Auto-advance the category carousel: slide to the next card every 5s
+  // Auto-advance the category carousel
   useEffect(() => {
     if (categories.length === 0) return;
     const timer = setInterval(() => {
       const el = catCarouselRef.current;
       if (!el || !el.firstElementChild) return;
-      const step = el.firstElementChild.offsetWidth + 24; // card width + gap
+      const step = el.firstElementChild.offsetWidth + 24;
       const maxScroll = el.scrollWidth - el.clientWidth;
       if (el.scrollLeft + step > maxScroll + 5) {
-        el.scrollTo({ left: 0, behavior: 'smooth' }); // loop back to start
+        el.scrollTo({ left: 0, behavior: 'smooth' });
       } else {
         el.scrollBy({ left: step, behavior: 'smooth' });
       }
@@ -164,7 +117,7 @@ export default function Home() {
     return () => clearInterval(timer);
   }, [categories]);
 
-  // Auto-advance the new arrivals carousel: slide to the next card every 5s
+  // Auto-advance the new arrivals carousel
   useEffect(() => {
     if (newArrivals.length === 0) return;
     const timer = setInterval(() => {
@@ -181,29 +134,7 @@ export default function Home() {
     return () => clearInterval(timer);
   }, [newArrivals]);
 
-  // Manual prev/next — used by the carousel arrow buttons
-  const scrollCarousel = (dir) => {
-    const el = carouselRef.current;
-    if (!el) return;
-    const card = el.querySelector('.product-card');
-    if (!card) return;
-    const step = card.offsetWidth + 20;
-    const current = Math.round(el.scrollLeft / step);
-    const maxScroll = el.scrollWidth - el.clientWidth;
-    const target = Math.min(Math.max((current + dir) * step, 0), maxScroll);
-    el.scrollTo({ left: target, behavior: 'smooth' });
-  };
-
-<<<<<<< HEAD
-  // Manual prev/next — used by the category carousel arrow buttons
-  const scrollCategories = (dir) => {
-    const el = catCarouselRef.current;
-    if (!el || !el.firstElementChild) return;
-    const step = el.firstElementChild.offsetWidth + 24;
-=======
-  // ─── Featured Projects carousel ───
-  const projectCarouselRef = useRef(null);
-
+  // Auto-advance the featured projects carousel
   useEffect(() => {
     if (featuredProjects.length === 0) return;
     const timer = setInterval(() => {
@@ -222,29 +153,7 @@ export default function Home() {
     return () => clearInterval(timer);
   }, [featuredProjects]);
 
-  const scrollProjectCarousel = (dir) => {
-    const el = projectCarouselRef.current;
-    if (!el) return;
-    const card = el.querySelector('.product-card');
-    if (!card) return;
-    const step = card.offsetWidth + 20;
->>>>>>> dcf4a222298338d2c8aa6d90c8afd54000bb0619
-    const current = Math.round(el.scrollLeft / step);
-    const maxScroll = el.scrollWidth - el.clientWidth;
-    const target = Math.min(Math.max((current + dir) * step, 0), maxScroll);
-    el.scrollTo({ left: target, behavior: 'smooth' });
-  };
-
-<<<<<<< HEAD
-  // Manual prev/next — used by the new arrivals carousel arrow buttons
-  const scrollNewArrivals = (dir) => {
-    const el = newArrivalsRef.current;
-    if (!el || !el.firstElementChild) return;
-    const step = el.firstElementChild.offsetWidth + 20;
-=======
-  // ─── Laser Modules carousel ───
-  const laserCarouselRef = useRef(null);
-
+  // Auto-advance the laser modules carousel
   useEffect(() => {
     if (laserProducts.length === 0) return;
     const timer = setInterval(() => {
@@ -263,13 +172,57 @@ export default function Home() {
     return () => clearInterval(timer);
   }, [laserProducts]);
 
+  // ─── Manual Navigation Controls ───
+  const scrollCarousel = (dir) => {
+    const el = carouselRef.current;
+    if (!el) return;
+    const card = el.querySelector('.product-card');
+    if (!card) return;
+    const step = card.offsetWidth + 20;
+    const current = Math.round(el.scrollLeft / step);
+    const maxScroll = el.scrollWidth - el.clientWidth;
+    const target = Math.min(Math.max((current + dir) * step, 0), maxScroll);
+    el.scrollTo({ left: target, behavior: 'smooth' });
+  };
+
+  const scrollCategories = (dir) => {
+    const el = catCarouselRef.current;
+    if (!el || !el.firstElementChild) return;
+    const step = el.firstElementChild.offsetWidth + 24;
+    const current = Math.round(el.scrollLeft / step);
+    const maxScroll = el.scrollWidth - el.clientWidth;
+    const target = Math.min(Math.max((current + dir) * step, 0), maxScroll);
+    el.scrollTo({ left: target, behavior: 'smooth' });
+  };
+
+  const scrollProjectCarousel = (dir) => {
+    const el = projectCarouselRef.current;
+    if (!el) return;
+    const card = el.querySelector('.product-card');
+    if (!card) return;
+    const step = card.offsetWidth + 20;
+    const current = Math.round(el.scrollLeft / step);
+    const maxScroll = el.scrollWidth - el.clientWidth;
+    const target = Math.min(Math.max((current + dir) * step, 0), maxScroll);
+    el.scrollTo({ left: target, behavior: 'smooth' });
+  };
+
+  const scrollNewArrivals = (dir) => {
+    const el = newArrivalsRef.current;
+    if (!el || !el.firstElementChild) return;
+    const step = el.firstElementChild.offsetWidth + 20;
+    const current = Math.round(el.scrollLeft / step);
+    const maxScroll = el.scrollWidth - el.clientWidth;
+    const target = Math.min(Math.max((current + dir) * step, 0), maxScroll);
+    el.scrollTo({ left: target, behavior: 'smooth' });
+  };
+
   const scrollLaserCarousel = (dir) => {
     const el = laserCarouselRef.current;
     if (!el) return;
     const card = el.querySelector('.product-card');
     if (!card) return;
     const step = card.offsetWidth + 20;
->>>>>>> dcf4a222298338d2c8aa6d90c8afd54000bb0619
     const current = Math.round(el.scrollLeft / step);
     const maxScroll = el.scrollWidth - el.clientWidth;
     const target = Math.min(Math.max((current + dir) * step, 0), maxScroll);
@@ -309,7 +262,7 @@ export default function Home() {
       </div>
 
       <div className="container">
-<section className="section">
+        <section className="section">
           <div className="section-head">
             <div>
               <h2>Shop Categories</h2>
