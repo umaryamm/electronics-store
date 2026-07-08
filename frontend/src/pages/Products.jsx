@@ -1,32 +1,84 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { loadProducts } from '../data/catalog';
+import { getProducts } from '../api/productService';
+import { getCategories } from '../api/categoryService';
 import ProductCard from '../components/ProductCard';
+
+// Maps the UI's sort labels to the exact keys the backend switch statement understands.
+// "rating" has no backend equivalent — sorted client-side on the current page only (see below).
+const SORT_MAP = {
+  featured: undefined, // backend defaults to newest-first when sort is omitted
+  'price-asc': 'price_asc',
+  'price-desc': 'price_desc',
+  rating: undefined,
+};
 
 export default function Products() {
   const [params, setParams] = useSearchParams();
-  const [data, setData] = useState({ products: [], categories: [] });
-  const [sort, setSort] = useState('featured');
+  const [products, setProducts] = useState([]);
+  const [categories, setCategories] = useState([]);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalProducts, setTotalProducts] = useState(0);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
   const activeCategory = params.get('category') || '';
   const query = params.get('q') || '';
+  const sort = params.get('sort') || 'featured';
+  const page = Number(params.get('page') || 1);
 
+  // Categories load once — they don't change per filter/page.
   useEffect(() => {
-    loadProducts().then(setData);
+    getCategories()
+      .then(setCategories)
+      .catch((err) => console.error('Failed to load categories:', err));
   }, []);
 
-  const filtered = useMemo(() => {
-    let list = data.products;
-    if (activeCategory) list = list.filter((p) => p.categoryId === activeCategory);
-    if (query) {
-      const q = query.toLowerCase();
-      list = list.filter((p) => (p.name || '').toLowerCase().includes(q) || (p.description || '').toLowerCase().includes(q));
-    }
-    list = [...list];
-    if (sort === 'price-asc') list.sort((a, b) => a.price - b.price);
-    else if (sort === 'price-desc') list.sort((a, b) => b.price - a.price);
-    else if (sort === 'rating') list.sort((a, b) => (b.rating || 0) - (a.rating || 0));
-    return list;
-  }, [data, activeCategory, query, sort]);
+  useEffect(() => {
+    setLoading(true);
+    setError(null);
+
+    getProducts({
+      search: query || undefined,
+      category: activeCategory || undefined, // backend expects a numeric category id
+      sort: SORT_MAP[sort],
+      page,
+      limit: 12,
+    })
+      .then((data) => {
+        let list = data.products;
+        // Client-side fallback for "Highest Rated" — only sorts within the current page,
+        // since the backend has no rating sort option.
+        if (sort === 'rating') {
+          list = [...list].sort((a, b) => (b.averageRating || 0) - (a.averageRating || 0));
+        }
+        setProducts(list);
+        setTotalPages(data.totalPages);
+        setTotalProducts(data.totalProducts);
+      })
+      .catch((err) => {
+        console.error('Failed to load products:', err);
+        setError('Could not load products. Please try again.');
+      })
+      .finally(() => setLoading(false));
+  }, [activeCategory, query, sort, page]);
+
+  // Single source of truth for building the next URL params — always carries forward
+  // the current category/query/sort/page unless explicitly overridden, so no filter
+  // silently disappears when only one control changes.
+  const updateParams = (overrides) => {
+    const next = {
+      ...(activeCategory ? { category: activeCategory } : {}),
+      ...(query ? { q: query } : {}),
+      ...(sort !== 'featured' ? { sort } : {}),
+      ...(page > 1 ? { page: String(page) } : {}),
+      ...overrides,
+    };
+    // Changing category/query/sort (not page itself) resets back to page 1
+    if (!('page' in overrides)) delete next.page;
+    Object.keys(next).forEach((k) => (next[k] === '' || next[k] == null) && delete next[k]);
+    setParams(next);
+  };
 
   return (
     <div className="container">
@@ -40,38 +92,61 @@ export default function Products() {
           <h4>Categories</h4>
           <div
             className={`sidebar-cat${!activeCategory ? ' active' : ''}`}
-            onClick={() => setParams(query ? { q: query } : {})}
+            onClick={() => updateParams({})}
           >
             <span>All Products</span>
-            <span className="count">{data.products.length}</span>
           </div>
-          {data.categories.map((cat) => (
+          {categories.map((cat) => (
             <div
               key={cat.id}
-              className={`sidebar-cat${activeCategory === cat.id ? ' active' : ''}`}
-              onClick={() => setParams(query ? { category: cat.id, q: query } : { category: cat.id })}
+              className={`sidebar-cat${Number(activeCategory) === cat.id ? ' active' : ''}`}
+              onClick={() => updateParams({ category: String(cat.id) })}
             >
-              <span>{cat.emoji} {cat.name}</span>
-              <span className="count">{cat.count}</span>
+              <span>{cat.name}</span>
             </div>
           ))}
         </aside>
 
         <div>
           <div className="toolbar">
-            <span style={{ fontSize: '0.85rem', color: 'var(--gray-mid)' }}>{filtered.length} products found</span>
-            <select value={sort} onChange={(e) => setSort(e.target.value)}>
+            <span style={{ fontSize: '0.85rem', color: 'var(--gray-mid)' }}>
+              {loading ? 'Loading…' : `${totalProducts} products found`}
+            </span>
+            <select value={sort} onChange={(e) => updateParams({ sort: e.target.value })}>
               <option value="featured">Sort: Featured</option>
               <option value="price-asc">Price: Low to High</option>
               <option value="price-desc">Price: High to Low</option>
-              <option value="rating">Highest Rated</option>
+              <option value="rating">Highest Rated (this page only)</option>
             </select>
           </div>
-          {filtered.length === 0 ? (
+
+          {error && <div className="empty-state">{error}</div>}
+
+          {!error && !loading && products.length === 0 ? (
             <div className="empty-state">No products match your filters.</div>
           ) : (
             <div className="product-grid">
-              {filtered.map((p) => <ProductCard key={p.id} product={p} />)}
+              {products.map((p) => <ProductCard key={p.id} product={p} />)}
+            </div>
+          )}
+
+          {totalPages > 1 && (
+            <div className="pagination" style={{ display: 'flex', gap: '10px', justifyContent: 'center', marginTop: '30px' }}>
+              <button
+                className="btn-ghost"
+                disabled={page <= 1}
+                onClick={() => updateParams({ page: String(page - 1) })}
+              >
+                Previous
+              </button>
+              <span style={{ alignSelf: 'center', fontSize: '0.85rem' }}>Page {page} of {totalPages}</span>
+              <button
+                className="btn-ghost"
+                disabled={page >= totalPages}
+                onClick={() => updateParams({ page: String(page + 1) })}
+              >
+                Next
+              </button>
             </div>
           )}
         </div>

@@ -8,37 +8,37 @@ export default function ProductCard({ product }) {
   const { addToCart } = useCart();
   const { openProductQuickView } = useQuickView();
 
-  const entireStars = Math.floor(product.rating || 0);
-  const hasHalfStar = (product.rating || 0) % 1 !== 0;
+  const rating = product.averageRating || 0;
+  const entireStars = Math.floor(rating);
+  const hasHalfStar = rating % 1 !== 0;
   const stars = '★'.repeat(entireStars) + (hasHalfStar ? '☆' : '');
+  const outOfStock = (product.stock ?? 0) <= 0;
 
   return (
     <div className="product-card" onClick={() => navigate(`/product/${product.id}`)}>
       <div className="product-img">
-        {product.emoji || product.image || '📦'}
-        {product.badge && (
-          <span className={product.badge.includes('%') ? 'badge-sale' : 'badge-new'}>{product.badge}</span>
+        <img src={product.imageUrl} alt={product.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+        {outOfStock && (
+          <span className="badge-new" style={{ background: '#c0392b' }}>Out of Stock</span>
         )}
       </div>
       <div className="product-info">
-        <div className="product-cat">{product.category}</div>
+        <div className="product-cat">{product.category?.name}</div>
         <div className="product-name">{product.name}</div>
         <div className="product-rating">
-          {product.rating ? (
+          {product.reviewCount > 0 ? (
             <>
-              {stars} <span>({product.rating} · {(product.reviews || 0).toLocaleString()} reviews)</span>
+              {stars} <span>({rating.toFixed(1)} · {product.reviewCount.toLocaleString()} reviews)</span>
             </>
           ) : (
             <span>No reviews yet</span>
           )}
         </div>
         <div className="product-footer">
-          <div className="product-price">
-            {product.originalPrice && <span className="old">{formatPrice(product.originalPrice)}</span>}
-            {formatPrice(product.price)}
-          </div>
+          <div className="product-price">{formatPrice(product.price)}</div>
           <button
             className="btn-cart"
+            disabled={outOfStock}
             onClick={(e) => {
               e.stopPropagation();
               addToCart(product.id, 1);
@@ -50,6 +50,7 @@ export default function ProductCard({ product }) {
         <div className="product-actions">
           <button
             className="btn-buy-now"
+            disabled={outOfStock}
             onClick={(e) => {
               e.stopPropagation();
               addToCart(product.id, 1);
