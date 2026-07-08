@@ -279,7 +279,58 @@ header.site-header {
 .btn-buy-now:hover { background: var(--cyan-dim); }
 .btn-quick-view { background: var(--bg3); color: var(--text-sub); border: 1px solid var(--border); }
 .btn-quick-view:hover { color: var(--cyan); border-color: var(--cyan); }
+/* ═══ FEATURED CAROUSEL ═══ */
+.section-head-center {
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  justify-content: center;
+  position: relative;
+}
+.section-head-center .section-link {
+  position: absolute; right: 0; bottom: 0;
+}
+@media (max-width: 640px) {
+  .section-head-center .section-link { position: static; margin-top: 8px; }
+}
 
+.product-carousel {
+  display: flex;
+  gap: 20px;
+  overflow-x: auto;
+  scroll-snap-type: x proximity;
+  padding-bottom: 8px;
+  scrollbar-width: none;           /* Firefox */
+}
+.product-carousel::-webkit-scrollbar { display: none; }  /* Chrome/Safari */
+.product-carousel .product-card {
+  flex: 0 0 320px;                 /* wider fixed-width cards, single row */
+  scroll-snap-align: start;
+}
+@media (max-width: 640px) {
+  .product-carousel .product-card { flex: 0 0 260px; }
+}
+.carousel-wrap { position: relative; }
+.carousel-arrow {
+  position: absolute; top: 50%; transform: translateY(-50%);
+  z-index: 10;
+  width: 42px; height: 42px; border-radius: 50%;
+  background: var(--bg2); border: 1px solid var(--border);
+  color: var(--text);
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.35);
+  transition: background 0.2s, color 0.2s, border-color 0.2s;
+}
+.carousel-arrow:hover { background: var(--cyan); color: #0a0f1a; border-color: var(--cyan); }
+.carousel-arrow svg { width: 20px; height: 20px; }
+.carousel-arrow.prev { left: -16px; }
+.carousel-arrow.next { right: -16px; }
+@media (max-width: 640px) {
+  .carousel-arrow { width: 36px; height: 36px; }
+  .carousel-arrow.prev { left: -8px; }
+  .carousel-arrow.next { right: -8px; }
+}
 /* ═══ QUICK VIEW MODAL / SIGN-IN MODAL ═══ */
 .modal-overlay {
   position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 3000;
