@@ -1,0 +1,369 @@
+{
+  "products": [
+    {
+      "id": "provisionx15",
+      "name": "ProVision X15 Ultra",
+      "category": "Smartphones",
+      "categoryId": "smartphones",
+      "price": 1199,
+      "originalPrice": null,
+      "badge": "New",
+      "rating": 4.9,
+      "reviews": 1200,
+      "emoji": "📱",
+      "image": "📱",
+      "description": "The ultimate flagship smartphone with cutting-edge 5G connectivity, 120Hz AMOLED display, and AI-powered camera system.",
+      "specs": {
+        "Display": "6.8\" Dynamic AMOLED 2X, 120Hz",
+        "Processor": "ProVision Quantum Chip",
+        "RAM": "12GB LPDDR5X",
+        "Storage": "256GB/512GB UFS 4.0",
+        "Camera": "200MP Main + 50MP Ultra + 12MP Telephoto",
+        "Battery": "5000mAh with 65W Charging",
+        "OS": "ProVisionOS 15"
+      },
+      "features": [
+        "IP68 Water Resistance",
+        "Gorilla Glass Armor Protection",
+        "Night Mode Pro",
+        "8K Video Recording",
+        "Satellite Connectivity"
+      ]
+    },
+    {
+      "id": "giantbookpro14",
+      "name": "GiantBook Pro 14 OLED",
+      "category": "Laptops",
+      "categoryId": "laptops",
+      "price": 1279,
+      "originalPrice": 1599,
+      "badge": "−20%",
+      "rating": 4.8,
+      "reviews": 843,
+      "emoji": "💻",
+      "image": "💻",
+      "description": "Ultra-thin laptop with stunning OLED display, M4 Pro chip, and all-day battery. Perfect for creators and professionals.",
+      "specs": {
+        "Display": "14.2\" 3072x1920 OLED, 120Hz",
+        "Processor": "GiantChip M4 Pro",
+        "Memory": "16GB/32GB Unified Memory",
+        "Storage": "512GB/1TB SSD",
+        "Graphics": "20-Core GPU",
+        "Battery": "18-hour battery life",
+        "Ports": "3x Thunderbolt 5, HDMI 2.1"
+      },
+      "features": [
+        "1.2kg Aluminum Design",
+        "Fanless Cooling",
+        "MagSafe Charging",
+        "5-Axis Trackpad",
+        "Studio-Grade Audio"
+      ]
+    },
+    {
+      "id": "vgsonicarcpro",
+      "name": "VG SonicArc ANC Pro",
+      "category": "Audio",
+      "categoryId": "audio",
+      "price": 349,
+      "originalPrice": null,
+      "badge": "New",
+      "rating": 4.7,
+      "reviews": 2100,
+      "emoji": "🎧",
+      "image": "🎧",
+      "description": "Premium wireless headphones with industry-leading noise cancellation and 40-hour battery life.",
+      "specs": {
+        "Driver": "40mm Custom Drivers",
+        "ANC": "9-Level Adaptive Noise Cancellation",
+        "Battery": "40 hours (ANC on), 60 hours (off)",
+        "Connectivity": "Bluetooth 5.4, Multi-device",
+        "Codecs": "LDAC, AAC, SBC",
+        "Weight": "250g",
+        "Colors": "Midnight, Silver, Cyan"
+      },
+      "features": [
+        "Spatial Audio Support",
+        "Transparency Mode",
+        "Foldable Design",
+        "Premium Carrying Case",
+        "2-Year Warranty"
+      ]
+    },
+    {
+      "id": "nexuscontrollerelite",
+      "name": "Nexus Controller Elite V3",
+      "category": "Gaming",
+      "categoryId": "gaming",
+      "price": 152,
+      "originalPrice": 179,
+      "badge": "−15%",
+      "rating": 5.0,
+      "reviews": 567,
+      "emoji": "🎮",
+      "image": "🎮",
+      "description": "Professional esports gaming controller with ultra-responsive triggers and lifetime durability guarantee.",
+      "specs": {
+        "Connectivity": "2.4GHz USB-C Dongle + Bluetooth",
+        "Buttons": "16 Programmable Buttons",
+        "Triggers": "Adaptive Force Triggers",
+        "Latency": "<1ms Wireless",
+        "Battery": "20-hour battery (wireless mode)",
+        "Weight": "185g",
+        "Compatibility": "PC, PS5, Switch, Mobile"
+      },
+      "features": [
+        "Customizable RGB Lighting",
+        "Tournament-Grade Precision",
+        "Swappable Stick Modules",
+        "Ergonomic Grip",
+        "Lifetime Warranty"
+      ]
+    },
+    {
+      "id": "vgpulsewatchultra",
+      "name": "VG PulseWatch Ultra GPS",
+      "category": "Wearables",
+      "categoryId": "wearables",
+      "price": 449,
+      "originalPrice": null,
+      "badge": null,
+      "rating": 4.6,
+      "reviews": 980,
+      "emoji": "⌚",
+      "image": "⌚",
+      "description": "Advanced fitness smartwatch with built-in GPS, heart rate monitoring, and 14-day battery life.",
+      "specs": {
+        "Display": "1.4\" AMOLED, Always-On",
+        "GPS": "Multi-band GPS + GLONASS",
+        "Sensors": "Heart Rate, SpO2, Temperature, Stress",
+        "Battery": "14 days typical, 5 days heavy use",
+        "Water Resistance": "5ATM (50m)",
+        "Strap": "Quick-swap silicone/leather",
+        "Colors": "Graphite, Cyan, Gold"
+      },
+      "features": [
+        "100+ Sport Modes",
+        "Sleep Tracking Pro",
+        "Stress Management",
+        "Menstrual Tracking",
+        "Music Control"
+      ]
+    },
+    {
+      "id": "lensgiant4kmirrorless",
+      "name": "LensGiant 4K Mirrorless",
+      "category": "Cameras",
+      "categoryId": "cameras",
+      "price": 2199,
+      "originalPrice": null,
+      "badge": "New",
+      "rating": 4.9,
+      "reviews": 331,
+      "emoji": "📷",
+      "image": "📷",
+      "description": "Professional 4K mirrorless camera with full-frame sensor, perfect for content creators and photographers.",
+      "specs": {
+        "Sensor": "Full-Frame 61MP CMOS",
+        "Video": "8K@30fps, 4K@120fps",
+        "Autofocus": "AI-Powered 2000-point AF",
+        "Shutter": "Electronic 1/8000s, 15fps Burst",
+        "ISO": "100-51200 native",
+        "Body": "Magnesium Alloy, Weather-Sealed",
+        "Battery": "Dual-slot, 750 shots/charge"
+      },
+      "features": [
+        "Real-Time Eye AF",
+        "Built-in Stabilization",
+        "Dual SD UHS-II Card Slots",
+        "USB-C Fast Charging",
+        "Free Lightroom Subscription"
+      ]
+    },
+    {
+      "id": "ipadprogeneration7",
+      "name": "iPad Pro Generation 7",
+      "category": "Tablets",
+      "categoryId": "tablets",
+      "price": 1099,
+      "originalPrice": null,
+      "badge": null,
+      "rating": 4.8,
+      "reviews": 2450,
+      "emoji": "📲",
+      "image": "📲",
+      "description": "12.9\" M4-powered tablet with stunning Liquid Retina XDR display, ideal for creative professionals.",
+      "specs": {
+        "Display": "12.9\" Liquid Retina XDR, 120Hz",
+        "Processor": "GiantChip M4",
+        "Memory": "8GB/16GB",
+        "Storage": "256GB-2TB SSD",
+        "Camera": "12MP Front + 12MP Rear",
+        "Battery": "10-hour battery",
+        "Ports": "Thunderbolt 5, Magic Keyboard"
+      },
+      "features": [
+        "ProMotion 120Hz",
+        "MiniLED Display",
+        "Apple Pencil Pro Support",
+        "Face ID Unlock",
+        "Stereo Speakers"
+      ]
+    },
+    {
+      "id": "usbchubaluminum",
+      "name": "USB-C Hub 7-in-1 Aluminum",
+      "category": "Accessories",
+      "categoryId": "accessories",
+      "price": 79,
+      "originalPrice": null,
+      "badge": null,
+      "rating": 4.7,
+      "reviews": 3100,
+      "emoji": "🔌",
+      "image": "🔌",
+      "description": "Compact aluminum hub with 4K HDMI, USB 3.0, SD card reader, and fast charging pass-through.",
+      "specs": {
+        "Ports": "HDMI 2.1 4K60, 3x USB 3.0, SD Card, USB-C PD",
+        "Material": "Aluminum Alloy",
+        "Power Delivery": "100W USB-C Pass-through",
+        "Data Speed": "5Gbps USB 3.0",
+        "Cable Length": "Integrated 25cm cable",
+        "Weight": "95g",
+        "Colors": "Space Gray, Silver"
+      },
+      "features": [
+        "Hot-Swap Design",
+        "Plug & Play",
+        "LED Indicator",
+        "Travel-Friendly",
+        "Lifetime Support"
+      ]
+    },
+    {
+      "id": "echodotgen5",
+      "name": "Echo Dot (5th Generation)",
+      "category": "Smart Home",
+      "categoryId": "smarthome",
+      "price": 99,
+      "originalPrice": 149,
+      "badge": "−34%",
+      "rating": 4.5,
+      "reviews": 5420,
+      "emoji": "🏠",
+      "image": "🏠",
+      "description": "Compact smart speaker with Alexa voice control, perfect for any room in your home.",
+      "specs": {
+        "Speaker": "1.73\" Speaker with Passive Bass Radiator",
+        "Microphone": "4-mic array",
+        "Connectivity": "WiFi 6 (802.11ax)",
+        "Power": "Wired AC Adapter",
+        "Color Options": "Charcoal, Cloud, Deep Sea Blue, Glacier White",
+        "Dimensions": "100 x 100 x 89mm",
+        "Weight": "168g"
+      },
+      "features": [
+        "Voice Control",
+        "Smart Home Hub",
+        "Music Streaming",
+        "Drop-In Audio",
+        "Custom Alarms & Routines"
+      ]
+    },
+    {
+      "id": "sonyheadphoneswh1000",
+      "name": "Sony WH-1000XM5 Headphones",
+      "category": "Audio",
+      "categoryId": "audio",
+      "price": 399,
+      "originalPrice": 479,
+      "badge": "−17%",
+      "rating": 4.8,
+      "reviews": 4200,
+      "emoji": "🎧",
+      "image": "🎧",
+      "description": "Legendary noise-canceling headphones with 30-hour battery and premium sound quality.",
+      "specs": {
+        "Driver": "40mm HD Driver",
+        "ANC": "Dual Noise Sensor Technology",
+        "Battery": "30 hours, 3-minute quick charge for 10 hours",
+        "Connectivity": "Bluetooth 5.3",
+        "Codecs": "LDAC, AAC, SBC",
+        "Colors": "Black, Silver, Navy Blue",
+        "Weight": "250g"
+      },
+      "features": [
+        "Multipoint Connection",
+        "Speak-to-Chat Technology",
+        "Adaptive Sound Control",
+        "Superior Call Quality",
+        "Premium Carrying Case"
+      ]
+    }
+  ],
+  "categories": [
+    {
+      "id": "smartphones",
+      "name": "Smartphones",
+      "emoji": "📱",
+      "count": 340,
+      "description": "Latest flagship phones with cutting-edge features"
+    },
+    {
+      "id": "laptops",
+      "name": "Laptops",
+      "emoji": "💻",
+      "count": 210,
+      "description": "Ultrabooks & gaming rigs for every need"
+    },
+    {
+      "id": "audio",
+      "name": "Audio",
+      "emoji": "🎧",
+      "count": 180,
+      "description": "Premium headphones and speakers"
+    },
+    {
+      "id": "cameras",
+      "name": "Cameras",
+      "emoji": "📷",
+      "count": 95,
+      "description": "DSLRs, mirrorless & drones"
+    },
+    {
+      "id": "gaming",
+      "name": "Gaming",
+      "emoji": "🎮",
+      "count": 275,
+      "description": "Consoles, controllers & gaming gear"
+    },
+    {
+      "id": "wearables",
+      "name": "Wearables",
+      "emoji": "⌚",
+      "count": 120,
+      "description": "Smartwatches & fitness trackers"
+    },
+    {
+      "id": "tablets",
+      "name": "Tablets",
+      "emoji": "📲",
+      "count": 85,
+      "description": "iPads & Android tablets"
+    },
+    {
+      "id": "accessories",
+      "name": "Accessories",
+      "emoji": "🖱️",
+      "count": 500,
+      "description": "Cables, hubs & peripherals"
+    },
+    {
+      "id": "smarthome",
+      "name": "Smart Home",
+      "emoji": "🏠",
+      "count": 160,
+      "description": "IoT & home automation devices"
+    }
+  ]
+}
