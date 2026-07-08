@@ -62,8 +62,8 @@ export default function Home() {
         </div>
       </section>
 
-      <div style={{ background: 'var(--bg2)', borderTop: '1px solid var(--border)', borderBottom: '1px solid var(--border)', padding: '14px 0', overflow: 'hidden', whiteSpace: 'nowrap' }}>
-        <div style={{ display: 'inline-flex', gap: '40px', fontSize: '0.85rem', color: 'var(--cyan)', fontWeight: 600 }}>
+      <div className="marquee">
+        <div className="marquee-track">
           {[...MARQUEE, ...MARQUEE].map((m, i) => (
             <span key={i}>✦ {m}</span>
           ))}
