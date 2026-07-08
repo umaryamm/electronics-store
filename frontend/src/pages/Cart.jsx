@@ -1,35 +1,61 @@
 import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
-import { loadProducts, formatPrice } from '../data/catalog';
+import { getProduct } from '../api/productService';
+import { formatPrice } from '../data/catalog';
 
 export default function Cart() {
   const { cart, increaseCartQty, decreaseCartQty, removeFromCart } = useCart();
-  const [products, setProducts] = useState([]);
+  const [productMap, setProductMap] = useState({});
+  const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
 
   useEffect(() => {
-    loadProducts().then(({ products }) => setProducts(products));
-  }, []);
+    if (cart.length === 0) {
+      setLoading(false);
+      return;
+    }
+    setLoading(true);
+    // Fetch each cart item's product by id directly — the backend paginates the
+    // full catalog, so we can't rely on a bulk list containing every cart item.
+    Promise.all(
+      cart.map((item) =>
+        getProduct(item.id)
+          .then((p) => [item.id, p])
+          .catch(() => [item.id, null]) // product may have been deleted since it was added
+      )
+    ).then((pairs) => {
+      setProductMap(Object.fromEntries(pairs));
+      setLoading(false);
+    });
+  }, [cart]);
 
   const lines = cart
     .map((item) => {
-      const product = products.find((p) => p.id === item.id);
+      const product = productMap[item.id];
       return product ? { ...item, product } : null;
     })
     .filter(Boolean);
+
+  const removedCount = cart.length - lines.length;
 
   const subtotal = lines.reduce((sum, l) => sum + l.product.price * l.qty, 0);
   const shipping = subtotal > 0 && subtotal < 25000 ? 350 : 0;
   const total = subtotal + shipping;
 
-  if (products.length === 0) return <div className="container" style={{ padding: '80px 0' }} />;
+  if (loading) return <div className="container" style={{ padding: '80px 0' }} />;
 
   return (
     <div className="container" style={{ paddingBottom: '80px' }}>
       <div className="page-header" style={{ textAlign: 'left', padding: '40px 0 24px' }}>
         <h1 style={{ textAlign: 'left' }}>Your Cart</h1>
       </div>
+
+      {removedCount > 0 && (
+        <p style={{ color: '#c0392b', fontSize: '0.85rem', marginBottom: '12px' }}>
+          {removedCount} item{removedCount > 1 ? 's' : ''} in your cart {removedCount > 1 ? 'are' : 'is'} no longer available and {removedCount > 1 ? 'have' : 'has'} been removed from view.
+        </p>
+      )}
 
       {lines.length === 0 ? (
         <div className="empty-state">
@@ -39,21 +65,26 @@ export default function Cart() {
       ) : (
         <div className="cart-layout">
           <div>
-            {lines.map(({ product, qty }) => (
-              <div className="cart-item" key={product.id}>
-                <div className="cart-item-img">{product.emoji || product.image || '📦'}</div>
-                <div>
-                  <div className="cart-item-name">{product.name}</div>
-                  <div className="cart-item-price">{formatPrice(product.price)}</div>
+            {lines.map(({ product, qty }) => {
+              const maxedOut = qty >= product.stock;
+              return (
+                <div className="cart-item" key={product.id}>
+                  <div className="cart-item-img">
+                    <img src={product.imageUrl} alt={product.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                  </div>
+                  <div>
+                    <div className="cart-item-name">{product.name}</div>
+                    <div className="cart-item-price">{formatPrice(product.price)}</div>
+                  </div>
+                  <div className="qty-control">
+                    <button onClick={() => decreaseCartQty(product.id)}>−</button>
+                    <span>{qty}</span>
+                    <button onClick={() => increaseCartQty(product.id)} disabled={maxedOut}>+</button>
+                  </div>
+                  <button className="remove-btn" onClick={() => removeFromCart(product.id)}>Remove</button>
                 </div>
-                <div className="qty-control">
-                  <button onClick={() => decreaseCartQty(product.id)}>−</button>
-                  <span>{qty}</span>
-                  <button onClick={() => increaseCartQty(product.id)}>+</button>
-                </div>
-                <button className="remove-btn" onClick={() => removeFromCart(product.id)}>Remove</button>
-              </div>
-            ))}
+              );
+            })}
           </div>
 
           <div className="summary-box">

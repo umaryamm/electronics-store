@@ -3,14 +3,16 @@ import { useNavigate } from 'react-router-dom';
 import { loadProducts, loadProjects } from '../data/catalog';
 import ProductCard from '../components/ProductCard';
 import ProjectCard from '../components/ProjectCard';
+import BorderGlow from '../components/BorderGlow';
+import SpotlightCard from '../components/SpotlightCard';
 
 const FEATURES = [
-  ['🚀', 'Same-Day Dispatch', "Order before 3 PM and your gear ships the same day. We don't believe in waiting when you're excited about new tech."],
-  ['🛡️', '2-Year Warranty', "Every device sold on Vision Giants includes a full 2-year manufacturer's warranty — no asterisks, no hidden terms."],
-  ['✅', '100% Authentic', 'We source directly from certified distributors. Counterfeits never touch our shelves. Your trust is non-negotiable.'],
-  ['💳', '0% Instalments', 'Split any purchase into 3, 6, or 12 months with zero interest via EasyPaisa, JazzCash, or bank instalments.'],
-  ['🔄', '30-Day Returns', 'Changed your mind? Return anything within 30 days, no questions asked. Full refund, hassle-free.'],
-  ['🎧', 'Expert Support 24/7', 'Real people, real answers — anytime. Our tech-savvy support team is on call around the clock for you.'],
+  ['Same-Day Dispatch', "Order before 3 PM and your gear ships the same day. We don't believe in waiting when you're excited about new tech."],
+  ['2-Year Warranty', "Every device sold on Vision Giants includes a full 2-year manufacturer's warranty — no asterisks, no hidden terms."],
+  ['100% Authentic', 'We source directly from certified distributors. Counterfeits never touch our shelves. Your trust is non-negotiable.'],
+  ['0% Instalments', 'Split any purchase into 3, 6, or 12 months with zero interest via EasyPaisa, JazzCash, or bank instalments.'],
+  ['30-Day Returns', 'Changed your mind? Return anything within 30 days, no questions asked. Full refund, hassle-free.'],
+  ['Expert Support 24/7', 'Real people, real answers — anytime. Our tech-savvy support team is on call around the clock for you.'],
 ];
 
 const MARQUEE = [
@@ -26,6 +28,8 @@ export default function Home() {
   const [categories, setCategories] = useState([]);
   const [featuredProducts, setFeaturedProducts] = useState([]);
   const [featuredProjects, setFeaturedProjects] = useState([]);
+  const [hoveredFeature, setHoveredFeature] = useState(null);
+  const [pressedFeature, setPressedFeature] = useState(null);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -116,16 +120,62 @@ export default function Home() {
         </section>
 
         <section className="section">
-          <div className="section-head" style={{ justifyContent: 'center', textAlign: 'center', flexDirection: 'column' }}>
+          <div className="section-head" style={{ justifyContent: 'center', alignItems: 'center', textAlign: 'center', flexDirection: 'column' }}>
             <h2>Why Vision Giants?</h2>
-            <p>We're built for tech lovers who refuse to settle. Every order, every pixel, every watt — obsessively curated.</p>
+            <p style={{ maxWidth: '520px', margin: '0 auto' }}>We're built for tech lovers who refuse to settle. Every order, every pixel, every watt — obsessively curated.</p>
           </div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(230px, 1fr))', gap: '20px' }}>
-            {FEATURES.map(([icon, title, desc]) => (
-              <div key={title} className="cat-card" style={{ textAlign: 'left', cursor: 'default' }}>
-                <div className="cat-emoji">{icon}</div>
-                <h3 style={{ fontSize: '1rem', marginBottom: '6px' }}>{title}</h3>
-                <p style={{ fontSize: '0.85rem', color: 'var(--text-sub)', lineHeight: 1.55 }}>{desc}</p>
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(3, 1fr)',
+              gap: '20px',
+              maxWidth: '900px',
+              margin: '0 auto',
+              alignItems: 'stretch',
+            }}
+          >
+            {FEATURES.map(([title, desc]) => (
+              <div
+                key={title}
+                onMouseEnter={() => setHoveredFeature(title)}
+                onMouseLeave={() => { setHoveredFeature(null); setPressedFeature(null); }}
+                onMouseDown={() => setPressedFeature(title)}
+                onMouseUp={() => setPressedFeature(null)}
+                style={{
+                  cursor: 'pointer',
+                  height: '100%',
+                  transform:
+                    pressedFeature === title
+                      ? 'translateY(-2px) scale(0.97)'
+                      : hoveredFeature === title
+                      ? 'translateY(-6px) scale(1.02)'
+                      : 'translateY(0) scale(1)',
+                  transition: 'transform 0.18s ease-out',
+                  boxShadow:
+                    hoveredFeature === title && pressedFeature !== title
+                      ? '0 12px 28px rgba(0,0,0,0.35)'
+                      : 'none',
+                  borderRadius: '16px',
+                }}
+              >
+                <BorderGlow
+                  backgroundColor="#11161f"
+                  glowColor="190 90% 65%"
+                  colors={['#38bdf8', '#818cf8', '#f472b6']}
+                  borderRadius={16}
+                  glowRadius={30}
+                  edgeSensitivity={35}
+                >
+                  <SpotlightCard
+                    spotlightColor="rgba(56, 189, 248, 0.25)"
+                    className="feature-spotlight"
+                  >
+                    <div style={{ textAlign: 'left', padding: '22px' }}>
+                      <h3 style={{ fontSize: '1rem', marginBottom: '6px', fontFamily: 'Space Grotesk, sans-serif' }}>{title}</h3>
+                      <p style={{ fontSize: '0.85rem', color: 'var(--text-sub)', lineHeight: 1.55 }}>{desc}</p>
+                    </div>
+                  </SpotlightCard>
+                </BorderGlow>
               </div>
             ))}
           </div>

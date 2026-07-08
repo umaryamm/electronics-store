@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import { getProductById, formatPrice, loadProducts } from '../data/catalog';
+import { getProduct, getProducts } from '../api/productService';
+import { formatPrice } from '../data/catalog';
 import { useCart } from '../context/CartContext';
 import ProductCard from '../components/ProductCard';
 
@@ -15,16 +16,23 @@ export default function ProductDetail() {
 
   useEffect(() => {
     setQty(1);
-    getProductById(id).then((p) => {
-      if (!p) {
+    setNotFound(false);
+    setProduct(null);
+
+    getProduct(id)
+      .then((p) => {
+        setProduct(p);
+        // Related products come from the backend filtered by category —
+        // there's no client-side full catalog to filter anymore.
+        return getProducts({ category: p.categoryId, limit: 5 });
+      })
+      .then((data) => {
+        setRelated((data?.products || []).filter((x) => String(x.id) !== String(id)).slice(0, 4));
+      })
+      .catch((err) => {
+        console.error('Failed to load product:', err);
         setNotFound(true);
-        return;
-      }
-      setProduct(p);
-      loadProducts().then(({ products }) => {
-        setRelated(products.filter((x) => x.categoryId === p.categoryId && x.id !== p.id).slice(0, 4));
       });
-    });
   }, [id]);
 
   if (notFound) {
@@ -40,79 +48,61 @@ export default function ProductDetail() {
 
   if (!product) return <div className="container" style={{ padding: '80px 0' }} />;
 
-  const entireStars = Math.floor(product.rating || 0);
-  const hasHalfStar = (product.rating || 0) % 1 !== 0;
+  const rating = product.averageRating || 0;
+  const entireStars = Math.floor(rating);
+  const hasHalfStar = rating % 1 !== 0;
   const stars = '★'.repeat(entireStars) + (hasHalfStar ? '☆' : '');
+  const outOfStock = (product.stock ?? 0) <= 0;
 
   return (
     <div className="container" style={{ paddingBottom: '80px' }}>
       <div className="breadcrumb">
-        <Link to="/">Home</Link> / <Link to="/products">Products</Link> / <Link to={`/products?category=${product.categoryId}`}>{product.category}</Link> / {product.name}
+        <Link to="/">Home</Link> / <Link to="/products">Products</Link> / <Link to={`/products?category=${product.categoryId}`}>{product.category?.name}</Link> / {product.name}
       </div>
 
       <div className="detail-layout" style={{ marginTop: '20px' }}>
         <div className="detail-img">
-          {product.emoji || product.image || '📦'}
-          {product.badge && (
-            <span className={product.badge.includes('%') ? 'badge-sale' : 'badge-new'} style={{ position: 'absolute', top: 16, left: 16 }}>{product.badge}</span>
+          <img src={product.imageUrl} alt={product.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+          {outOfStock && (
+            <span className="badge-new" style={{ position: 'absolute', top: 16, left: 16, background: '#c0392b' }}>Out of Stock</span>
           )}
         </div>
 
         <div>
-          <div className="qv-cat">{product.category}</div>
+          <div className="qv-cat">{product.category?.name}</div>
           <div className="detail-name">{product.name}</div>
           <div className="qv-rating">
-            {product.rating ? (
-              <>{stars} <span>({product.rating} · {(product.reviews || 0).toLocaleString()} reviews)</span></>
+            {product.reviewCount > 0 ? (
+              <>{stars} <span>({rating.toFixed(1)} · {product.reviewCount.toLocaleString()} reviews)</span></>
             ) : (
               <span>No reviews yet</span>
             )}
           </div>
-          <div className="detail-price">
-            {product.originalPrice && <span className="old">{formatPrice(product.originalPrice)}</span>}
-            {formatPrice(product.price)}
-          </div>
+          <div className="detail-price">{formatPrice(product.price)}</div>
           <p style={{ color: 'var(--text-sub)', lineHeight: 1.6, fontSize: '0.95rem' }}>{product.description}</p>
+
+          {product.stock > 0 && product.stock <= 5 && (
+            <p style={{ color: '#c0392b', fontSize: '0.85rem', marginTop: '4px' }}>Only {product.stock} left in stock</p>
+          )}
 
           <div className="qty-select-detail">
             <div className="qty-control">
-              <button onClick={() => setQty((q) => Math.max(1, q - 1))}>−</button>
+              <button onClick={() => setQty((q) => Math.max(1, q - 1))} disabled={outOfStock}>−</button>
               <span>{qty}</span>
-              <button onClick={() => setQty((q) => q + 1)}>+</button>
+              <button onClick={() => setQty((q) => Math.min(product.stock, q + 1))} disabled={outOfStock}>+</button>
             </div>
             <button
               className="btn-primary"
+              disabled={outOfStock}
               onClick={() => {
                 addToCart(product.id, qty);
                 navigate('/cart');
               }}
             >
-              Buy Now
+              {outOfStock ? 'Out of Stock' : 'Buy Now'}
             </button>
-            <button className="btn-ghost" onClick={() => addToCart(product.id, qty)}>🛒 Add to Cart</button>
+            <button className="btn-ghost" disabled={outOfStock} onClick={() => addToCart(product.id, qty)}>🛒 Add to Cart</button>
           </div>
-
-          {product.specs && Object.keys(product.specs).length > 0 && (
-            <>
-              <h3 style={{ fontSize: '1rem', marginTop: '24px', marginBottom: '4px' }}>Specifications</h3>
-              <table className="spec-table">
-                <tbody>
-                  {Object.entries(product.specs).map(([k, v]) => (
-                    <tr key={k}><td>{k}</td><td>{v}</td></tr>
-                  ))}
-                </tbody>
-              </table>
-            </>
-          )}
-
-          {product.features?.length > 0 && (
-            <>
-              <h3 style={{ fontSize: '1rem', marginTop: '20px', marginBottom: '4px' }}>Key Features</h3>
-              <ul className="feature-list">
-                {product.features.map((f) => <li key={f}>{f}</li>)}
-              </ul>
-            </>
-          )}
         </div>
       </div>
 
