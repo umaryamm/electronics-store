@@ -1,10 +1,20 @@
 const { PrismaClient } = require("@prisma/client");
 const prisma = new PrismaClient();
 
+const { PrismaClient } = require("@prisma/client");
+const prisma = new PrismaClient();
+
+const VALID_PAYMENT_METHODS = ["COD", "Bank Transfer"];
+
 exports.createOrder = async (req, res) => {
     try {
         const userId = req.user.userId;
         const { shippingAddressId, shippingMethod, shippingCost, paymentMethod } = req.body;
+
+        // Validate payment method up front — this also gates the tax logic below
+        if (!VALID_PAYMENT_METHODS.includes(paymentMethod)) {
+            return res.status(400).json({ message: "Invalid payment method." });
+        }
 
         // Get user's cart
         const cart = await prisma.cart.findUnique({
@@ -23,6 +33,15 @@ exports.createOrder = async (req, res) => {
 
         if (!address || address.userId !== userId) {
             return res.status(404).json({ message: "Address not found." });
+        }
+
+        // Stock check BEFORE touching anything — fail fast with a clear message
+        for (const item of cart.items) {
+            if (item.product.stock < item.quantity) {
+                return res.status(400).json({
+                    message: `${item.product.name} only has ${item.product.stock} left in stock.`
+                });
+            }
         }
 
         // Calculate subtotal from DB (never trust frontend)
@@ -55,28 +74,40 @@ exports.createOrder = async (req, res) => {
             phone: address.phone
         });
 
-        // Create order
-        const order = await prisma.order.create({
-            data: {
-                userId,
-                shippingAddress: addressData,
-                billingAddress: addressData,
-                shippingMethod,
-                shippingCost,
-                subtotal,
-                taxAmount,
-                total,
-                paymentMethod,
-                status: "pending",
-                items: {
-                    create: orderItems
-                }
-            },
-            include: { items: true }
-        });
+        // Everything below must succeed together, or none of it should persist.
+        const order = await prisma.$transaction(async (tx) => {
+            const createdOrder = await tx.order.create({
+                data: {
+                    userId,
+                    shippingAddress: addressData,
+                    billingAddress: addressData,
+                    shippingMethod,
+                    shippingCost,
+                    subtotal,
+                    taxAmount,
+                    total,
+                    paymentMethod,
+                    status: "pending",
+                    items: {
+                        create: orderItems
+                    }
+                },
+                include: { items: true }
+            });
 
-        // Clear cart
-        await prisma.cartItem.deleteMany({ where: { cartId: cart.id } });
+            // Decrement stock for each product
+            for (const item of cart.items) {
+                await tx.product.update({
+                    where: { id: item.productId },
+                    data: { stock: { decrement: item.quantity } }
+                });
+            }
+
+            // Clear cart
+            await tx.cartItem.deleteMany({ where: { cartId: cart.id } });
+
+            return createdOrder;
+        });
 
         res.status(201).json({
             message: "Order created successfully.",

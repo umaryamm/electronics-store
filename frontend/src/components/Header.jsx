@@ -2,12 +2,14 @@ import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useTheme } from '../context/ThemeContext';
 import { useCart } from '../context/CartContext';
+import { useAuth } from '../context/AuthContext';
 import { loadProducts } from '../data/catalog';
 import SearchBar from './SearchBar';
 
 export default function Header() {
   const { theme, toggleTheme } = useTheme();
   const { cartCount } = useCart();
+  const { isAuthenticated, logout } = useAuth();
   const [categories, setCategories] = useState([]);
   const [mobileOpen, setMobileOpen] = useState(false);
   const navigate = useNavigate();
@@ -15,6 +17,15 @@ export default function Header() {
   useEffect(() => {
     loadProducts().then(({ categories }) => setCategories(categories));
   }, []);
+
+  const handleProfileClick = () => {
+    if (isAuthenticated) {
+      logout();
+      navigate('/');
+    } else {
+      navigate('/login');
+    }
+  };
 
   return (
     <header className="site-header">
@@ -66,6 +77,16 @@ export default function Header() {
               </svg>
             )}
           </button>
+
+          {/* Profile icon — logged out: goes to /login. Logged in: logs out.
+              Swap this for a dropdown ("My Orders" / "Logout") once an account page exists. */}
+          <button className="icon-btn" onClick={handleProfileClick} title={isAuthenticated ? 'Log out' : 'Log in'}>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+              <circle cx="12" cy="7" r="4" />
+            </svg>
+          </button>
+
           <Link to="/cart" className="icon-btn">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               <circle cx="9" cy="21" r="1" /><circle cx="20" cy="21" r="1" />
