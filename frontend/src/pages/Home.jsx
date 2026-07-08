@@ -6,6 +6,7 @@ import ProjectCard from '../components/ProjectCard';
 import BorderGlow from '../components/BorderGlow';
 import SpotlightCard from '../components/SpotlightCard';
 
+
 const FEATURES = [
   ['Same-Day Dispatch', "Order before 3 PM and your gear ships the same day. We don't believe in waiting when you're excited about new tech."],
   ['2-Year Warranty', "Every device sold on Vision Giants includes a full 2-year manufacturer's warranty — no asterisks, no hidden terms."],
@@ -13,6 +14,26 @@ const FEATURES = [
   ['0% Instalments', 'Split any purchase into 3, 6, or 12 months with zero interest via EasyPaisa, JazzCash, or bank instalments.'],
   ['30-Day Returns', 'Changed your mind? Return anything within 30 days, no questions asked. Full refund, hassle-free.'],
   ['Expert Support 24/7', 'Real people, real answers — anytime. Our tech-savvy support team is on call around the clock for you.'],
+];
+// Temporary placeholder projects so the carousel overflows — remove once real data is added
+const DUMMY_PROJECTS = [
+  { id: 'dummy-1', emoji: '🚁', badge: 'POPULAR', category: 'Drone Projects', name: 'FPV Racing Drone Build Kit', rating: 4.7, reviews: 89, difficulty: 'Advanced', duration: '5–6 Weeks', description: 'Placeholder project — real data coming soon.' },
+  { id: 'dummy-2', emoji: '🌡️', badge: 'POPULAR', category: 'IoT Projects', name: 'ESP32 Weather Station', rating: 4.5, reviews: 134, difficulty: 'Beginner', duration: '1–2 Weeks', description: 'Placeholder project — real data coming soon.' },
+  { id: 'dummy-3', emoji: '🔋', badge: 'POPULAR', category: 'Power Electronics', name: 'Solar MPPT Charge Controller', rating: 4.6, reviews: 58, difficulty: 'Intermediate', duration: '3–4 Weeks', description: 'Placeholder project — real data coming soon.' },
+  { id: 'dummy-4', emoji: '🚗', badge: 'POPULAR', category: 'Robotics Projects', name: 'Line-Following Robot Car', rating: 4.4, reviews: 210, difficulty: 'Beginner', duration: '1 Week', description: 'Placeholder project — real data coming soon.' },
+  { id: 'dummy-5', emoji: '🔐', badge: 'POPULAR', category: 'Security Systems', name: 'RFID Door Lock System', rating: 4.8, reviews: 96, difficulty: 'Intermediate', duration: '2–3 Weeks', description: 'Placeholder project — real data coming soon.' },
+  { id: 'dummy-6', emoji: '💧', badge: 'POPULAR', category: 'Smart Home Projects', name: 'Automatic Plant Watering System', rating: 4.5, reviews: 77, difficulty: 'Beginner', duration: '1–2 Weeks', description: 'Placeholder project — real data coming soon.' },
+];
+
+// TEMP: placeholder laser modules so the section shows before real data arrives.
+// Remove once products.json contains real "Laser Modules" items.
+const DUMMY_LASERS = [
+  { id: 'laser-1', emoji: '🔦', badge: '-14%', category: 'Laser Modules', name: '40W Fixed Focus Laser Head 450nm TTL', rating: 4.6, reviews: 42, price: 40000, originalPrice: 46500, description: 'Placeholder — real data coming soon.' },
+  { id: 'laser-2', emoji: '🔦', badge: '-28%', category: 'Laser Modules', name: '20W Laser Module 450nm Engraving Head', rating: 4.7, reviews: 61, price: 25500, originalPrice: 35500, description: 'Placeholder — real data coming soon.' },
+  { id: 'laser-3', emoji: '🔦', badge: '-13%', category: 'Laser Modules', name: '15W 450nm 40mm Laser Module DIY CNC', rating: 4.5, reviews: 38, price: 32500, originalPrice: 37500, description: 'Placeholder — real data coming soon.' },
+  { id: 'laser-4', emoji: '🔦', badge: '-25%', category: 'Laser Modules', name: '10W/5500mW Laser Module 450nm', rating: 4.4, reviews: 55, price: 20000, originalPrice: 26500, description: 'Placeholder — real data coming soon.' },
+  { id: 'laser-5', emoji: '🔦', badge: '-9%', category: 'Laser Modules', name: '80W Laser Module with Air Assist 450nm', rating: 4.8, reviews: 29, price: 58500, originalPrice: 64500, description: 'Placeholder — real data coming soon.' },
+  { id: 'laser-6', emoji: '🔦', badge: 'NEW', category: 'Laser Modules', name: '5.5W Laser Engraver Module 445nm', rating: 4.3, reviews: 18, price: 14500, description: 'Placeholder — real data coming soon.' },
 ];
 
 const MARQUEE = [
@@ -74,7 +95,11 @@ export default function Home() {
   const [categories, setCategories] = useState([]);
   const [featuredProducts, setFeaturedProducts] = useState([]);
   const [featuredProjects, setFeaturedProjects] = useState([]);
+<<<<<<< HEAD
   const [newArrivals, setNewArrivals] = useState([]);
+=======
+  const [laserProducts, setLaserProducts] = useState([]);
+>>>>>>> dcf4a222298338d2c8aa6d90c8afd54000bb0619
   const [hoveredFeature, setHoveredFeature] = useState(null);
   const [pressedFeature, setPressedFeature] = useState(null);
   const navigate = useNavigate();
@@ -83,16 +108,25 @@ export default function Home() {
     loadProducts().then(({ categories, products }) => {
       setCategories(categories);
       setFeaturedProducts(products.slice(0, 8));
+      // Laser Modules category — matches by category name. Falls back to
+      // dummy cards until real laser products exist in products.json.
+      const lasers = products.filter((p) => (p.category || '').toLowerCase().includes('laser'));
+      setLaserProducts((lasers.length > 0 ? lasers : DUMMY_LASERS).slice(0, 10));
     });
     loadProjects().then(({ projects }) => {
-      setFeaturedProjects(projects.filter((p) => p.badge === 'POPULAR').slice(0, 4));
+      const popular = projects.filter((p) => p.badge === 'POPULAR');
+      // TEMP: pad with dummy cards so the carousel scrolls — remove when real data exists
+      setFeaturedProjects([...popular, ...DUMMY_PROJECTS].slice(0, 10));
     });
     // Mock data for now — replace with a real "new arrivals" fetch later
     setNewArrivals(MOCK_NEW_ARRIVALS);
   }, []);
+
+  // ─── Featured Products carousel ───
   const carouselRef = useRef(null);
   const catCarouselRef = useRef(null);
   const newArrivalsRef = useRef(null);
+
 
   // Auto-advance the featured carousel: slide to the next card every 5s
   useEffect(() => {
@@ -160,22 +194,82 @@ export default function Home() {
     el.scrollTo({ left: target, behavior: 'smooth' });
   };
 
+<<<<<<< HEAD
   // Manual prev/next — used by the category carousel arrow buttons
   const scrollCategories = (dir) => {
     const el = catCarouselRef.current;
     if (!el || !el.firstElementChild) return;
     const step = el.firstElementChild.offsetWidth + 24;
+=======
+  // ─── Featured Projects carousel ───
+  const projectCarouselRef = useRef(null);
+
+  useEffect(() => {
+    if (featuredProjects.length === 0) return;
+    const timer = setInterval(() => {
+      const el = projectCarouselRef.current;
+      if (!el) return;
+      const card = el.querySelector('.product-card');
+      if (!card) return;
+      const step = card.offsetWidth + 20;
+      const maxScroll = el.scrollWidth - el.clientWidth;
+      if (el.scrollLeft + step > maxScroll + 5) {
+        el.scrollTo({ left: 0, behavior: 'smooth' });
+      } else {
+        el.scrollBy({ left: step, behavior: 'smooth' });
+      }
+    }, 5000);
+    return () => clearInterval(timer);
+  }, [featuredProjects]);
+
+  const scrollProjectCarousel = (dir) => {
+    const el = projectCarouselRef.current;
+    if (!el) return;
+    const card = el.querySelector('.product-card');
+    if (!card) return;
+    const step = card.offsetWidth + 20;
+>>>>>>> dcf4a222298338d2c8aa6d90c8afd54000bb0619
     const current = Math.round(el.scrollLeft / step);
     const maxScroll = el.scrollWidth - el.clientWidth;
     const target = Math.min(Math.max((current + dir) * step, 0), maxScroll);
     el.scrollTo({ left: target, behavior: 'smooth' });
   };
 
+<<<<<<< HEAD
   // Manual prev/next — used by the new arrivals carousel arrow buttons
   const scrollNewArrivals = (dir) => {
     const el = newArrivalsRef.current;
     if (!el || !el.firstElementChild) return;
     const step = el.firstElementChild.offsetWidth + 20;
+=======
+  // ─── Laser Modules carousel ───
+  const laserCarouselRef = useRef(null);
+
+  useEffect(() => {
+    if (laserProducts.length === 0) return;
+    const timer = setInterval(() => {
+      const el = laserCarouselRef.current;
+      if (!el) return;
+      const card = el.querySelector('.product-card');
+      if (!card) return;
+      const step = card.offsetWidth + 20;
+      const maxScroll = el.scrollWidth - el.clientWidth;
+      if (el.scrollLeft + step > maxScroll + 5) {
+        el.scrollTo({ left: 0, behavior: 'smooth' });
+      } else {
+        el.scrollBy({ left: step, behavior: 'smooth' });
+      }
+    }, 5000);
+    return () => clearInterval(timer);
+  }, [laserProducts]);
+
+  const scrollLaserCarousel = (dir) => {
+    const el = laserCarouselRef.current;
+    if (!el) return;
+    const card = el.querySelector('.product-card');
+    if (!card) return;
+    const step = card.offsetWidth + 20;
+>>>>>>> dcf4a222298338d2c8aa6d90c8afd54000bb0619
     const current = Math.round(el.scrollLeft / step);
     const maxScroll = el.scrollWidth - el.clientWidth;
     const target = Math.min(Math.max((current + dir) * step, 0), maxScroll);
@@ -341,17 +435,48 @@ export default function Home() {
         </section>
 
         <section className="section">
-          <div className="section-head">
+          <div className="section-head section-head-center">
             <div>
               <h2>Featured Projects</h2>
               <p>Get inspired with expert-curated projects, from beginner-friendly Arduino builds to advanced robotics systems.</p>
             </div>
             <a className="section-link" href="/projects" onClick={(e) => { e.preventDefault(); navigate('/projects'); }}>View All →</a>
           </div>
-          <div className="product-grid">
-            {featuredProjects.map((p) => <ProjectCard key={p.id} project={p} />)}
+          <div className="carousel-wrap">
+            <button className="carousel-arrow prev" onClick={() => scrollProjectCarousel(-1)} aria-label="Previous">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="15 18 9 12 15 6" /></svg>
+            </button>
+            <div className="product-carousel" ref={projectCarouselRef}>
+              {featuredProjects.map((p) => <ProjectCard key={p.id} project={p} />)}
+            </div>
+            <button className="carousel-arrow next" onClick={() => scrollProjectCarousel(1)} aria-label="Next">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="9 18 15 12 9 6" /></svg>
+            </button>
           </div>
         </section>
+
+        {laserProducts.length > 0 && (
+          <section className="section">
+            <div className="section-head section-head-center">
+              <div>
+                <h2>Laser Modules</h2>
+                <p>High-precision laser heads and engraving modules for CNC, wood, acrylic, and metal work.</p>
+              </div>
+              <a className="section-link" href="/products" onClick={(e) => { e.preventDefault(); navigate('/products?category=laser-modules'); }}>View All →</a>
+            </div>
+            <div className="carousel-wrap">
+              <button className="carousel-arrow prev" onClick={() => scrollLaserCarousel(-1)} aria-label="Previous">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="15 18 9 12 15 6" /></svg>
+              </button>
+              <div className="product-carousel" ref={laserCarouselRef}>
+                {laserProducts.map((p) => <ProductCard key={p.id} product={p} />)}
+              </div>
+              <button className="carousel-arrow next" onClick={() => scrollLaserCarousel(1)} aria-label="Next">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="9 18 15 12 9 6" /></svg>
+              </button>
+            </div>
+          </section>
+        )}
 
         <section className="section">
           <div className="section-head" style={{ justifyContent: 'center', alignItems: 'center', textAlign: 'center', flexDirection: 'column' }}>
