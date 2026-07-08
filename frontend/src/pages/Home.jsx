@@ -24,10 +24,57 @@ const MARQUEE = [
   '0% Instalment Plans Available',
 ];
 
+// Temporary mock data for the New Arrivals section — swap for a real
+// API call (e.g. loadProducts/loadProjects filtered by newest date)
+// once the backend exposes an endpoint for it.
+const MOCK_NEW_ARRIVALS = [
+  {
+    id: 'na-1',
+    type: 'product',
+    name: 'ESP32-CAM WiFi Module',
+    price: 2200,
+    image: '',
+    badge: 'NEW',
+  },
+  {
+    id: 'na-2',
+    type: 'product',
+    name: 'NEMA 17 Stepper Motor',
+    price: 1450,
+    image: '',
+    badge: 'NEW',
+  },
+  {
+    id: 'na-3',
+    type: 'project',
+    name: 'Line-Following Robot Kit',
+    price: 6800,
+    image: '',
+    badge: 'NEW',
+  },
+  {
+    id: 'na-4',
+    type: 'product',
+    name: '4K Mini Projector Module',
+    price: 15500,
+    image: '',
+    badge: 'NEW',
+  },
+  {
+    id: 'na-5',
+    type: 'project',
+    name: 'Smart Home Automation Hub',
+    price: 9200,
+    image: '',
+    badge: 'NEW',
+  },
+];
+
 export default function Home() {
   const [categories, setCategories] = useState([]);
   const [featuredProducts, setFeaturedProducts] = useState([]);
   const [featuredProjects, setFeaturedProjects] = useState([]);
+  const [newArrivals, setNewArrivals] = useState([]);
   const [hoveredFeature, setHoveredFeature] = useState(null);
   const [pressedFeature, setPressedFeature] = useState(null);
   const navigate = useNavigate();
@@ -40,8 +87,12 @@ export default function Home() {
     loadProjects().then(({ projects }) => {
       setFeaturedProjects(projects.filter((p) => p.badge === 'POPULAR').slice(0, 4));
     });
+    // Mock data for now — replace with a real "new arrivals" fetch later
+    setNewArrivals(MOCK_NEW_ARRIVALS);
   }, []);
   const carouselRef = useRef(null);
+  const catCarouselRef = useRef(null);
+  const newArrivalsRef = useRef(null);
 
   // Auto-advance the featured carousel: slide to the next card every 5s
   useEffect(() => {
@@ -62,6 +113,40 @@ export default function Home() {
     return () => clearInterval(timer);
   }, [featuredProducts]);
 
+  // Auto-advance the category carousel: slide to the next card every 5s
+  useEffect(() => {
+    if (categories.length === 0) return;
+    const timer = setInterval(() => {
+      const el = catCarouselRef.current;
+      if (!el || !el.firstElementChild) return;
+      const step = el.firstElementChild.offsetWidth + 24; // card width + gap
+      const maxScroll = el.scrollWidth - el.clientWidth;
+      if (el.scrollLeft + step > maxScroll + 5) {
+        el.scrollTo({ left: 0, behavior: 'smooth' }); // loop back to start
+      } else {
+        el.scrollBy({ left: step, behavior: 'smooth' });
+      }
+    }, 5000);
+    return () => clearInterval(timer);
+  }, [categories]);
+
+  // Auto-advance the new arrivals carousel: slide to the next card every 5s
+  useEffect(() => {
+    if (newArrivals.length === 0) return;
+    const timer = setInterval(() => {
+      const el = newArrivalsRef.current;
+      if (!el || !el.firstElementChild) return;
+      const step = el.firstElementChild.offsetWidth + 20;
+      const maxScroll = el.scrollWidth - el.clientWidth;
+      if (el.scrollLeft + step > maxScroll + 5) {
+        el.scrollTo({ left: 0, behavior: 'smooth' });
+      } else {
+        el.scrollBy({ left: step, behavior: 'smooth' });
+      }
+    }, 5000);
+    return () => clearInterval(timer);
+  }, [newArrivals]);
+
   // Manual prev/next — used by the carousel arrow buttons
   const scrollCarousel = (dir) => {
     const el = carouselRef.current;
@@ -69,6 +154,28 @@ export default function Home() {
     const card = el.querySelector('.product-card');
     if (!card) return;
     const step = card.offsetWidth + 20;
+    const current = Math.round(el.scrollLeft / step);
+    const maxScroll = el.scrollWidth - el.clientWidth;
+    const target = Math.min(Math.max((current + dir) * step, 0), maxScroll);
+    el.scrollTo({ left: target, behavior: 'smooth' });
+  };
+
+  // Manual prev/next — used by the category carousel arrow buttons
+  const scrollCategories = (dir) => {
+    const el = catCarouselRef.current;
+    if (!el || !el.firstElementChild) return;
+    const step = el.firstElementChild.offsetWidth + 24;
+    const current = Math.round(el.scrollLeft / step);
+    const maxScroll = el.scrollWidth - el.clientWidth;
+    const target = Math.min(Math.max((current + dir) * step, 0), maxScroll);
+    el.scrollTo({ left: target, behavior: 'smooth' });
+  };
+
+  // Manual prev/next — used by the new arrivals carousel arrow buttons
+  const scrollNewArrivals = (dir) => {
+    const el = newArrivalsRef.current;
+    if (!el || !el.firstElementChild) return;
+    const step = el.firstElementChild.offsetWidth + 20;
     const current = Math.round(el.scrollLeft / step);
     const maxScroll = el.scrollWidth - el.clientWidth;
     const target = Math.min(Math.max((current + dir) * step, 0), maxScroll);
@@ -108,21 +215,107 @@ export default function Home() {
       </div>
 
       <div className="container">
-        <section className="section">
+<section className="section">
           <div className="section-head">
             <div>
               <h2>Shop Categories</h2>
               <p>Explore our full range of premium electronics organized by what matters most to you.</p>
             </div>
           </div>
-          <div className="cat-grid">
-            {categories.map((cat) => (
-              <div key={cat.id} className="cat-card" onClick={() => navigate(`/products?category=${cat.id}`)}>
-                <div className="cat-emoji">{cat.emoji}</div>
-                <div className="cat-name">{cat.name}</div>
-                <div className="cat-count">{cat.count || ''}</div>
-              </div>
-            ))}
+          <div className="carousel-wrap">
+            <button className="carousel-arrow prev" onClick={() => scrollCategories(-1)} aria-label="Previous">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="15 18 9 12 15 6" /></svg>
+            </button>
+            <div className="cat-carousel cat-carousel-lg" ref={catCarouselRef}>
+              {categories.map((cat) => (
+                <div key={cat.id} className="cat-card" onClick={() => navigate(`/products?category=${cat.id}`)}>
+                  <div className="cat-image-wrap">
+                    {cat.image ? (
+                      <img src={cat.image} alt={cat.name} className="cat-image" />
+                    ) : (
+                      <div className="cat-emoji">{cat.emoji}</div>
+                    )}
+                  </div>
+                  <div style={{ padding: '12px 4px 4px' }}>
+                    <div className="cat-name">{cat.name}</div>
+                    <div className="cat-count">{cat.count || ''}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+            <button className="carousel-arrow next" onClick={() => scrollCategories(1)} aria-label="Next">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="9 18 15 12 9 6" /></svg>
+            </button>
+          </div>
+        </section>
+
+        <section className="section">
+          <div className="section-head">
+            <div>
+              <h2>New Arrivals</h2>
+              <p>Fresh in stock — the latest products and project kits, just added.</p>
+            </div>
+          </div>
+          <div className="carousel-wrap">
+            <button className="carousel-arrow prev" onClick={() => scrollNewArrivals(-1)} aria-label="Previous">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="15 18 9 12 15 6" /></svg>
+            </button>
+            <div className="product-carousel" ref={newArrivalsRef}>
+              {newArrivals.map((item) => (
+                <div key={item.id} className="product-card">
+                  <div style={{ position: 'absolute', top: '10px', left: '10px', background: 'var(--cyan)', color: '#000', fontSize: '0.7rem', fontWeight: 700, padding: '3px 8px', borderRadius: '6px', zIndex: 1 }}>
+                    NEW
+                  </div>
+                  <div
+                    onClick={() => navigate(item.type === 'project' ? `/projects/${item.id}` : `/products/${item.id}`)}
+                    style={{ width: '100%', aspectRatio: '1', background: 'var(--bg3)', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', cursor: 'pointer' }}
+                  >
+                    {item.image ? (
+                      <img src={item.image} alt={item.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                    ) : (
+                      <span style={{ fontSize: '0.75rem', color: 'var(--text-sub)' }}>{item.type === 'project' ? 'Project' : 'Product'}</span>
+                    )}
+                  </div>
+                  <div style={{ padding: '12px 4px 4px' }}>
+                    <div
+                      onClick={() => navigate(item.type === 'project' ? `/projects/${item.id}` : `/products/${item.id}`)}
+                      style={{ fontSize: '0.9rem', fontWeight: 600, marginBottom: '4px', cursor: 'pointer' }}
+                    >
+                      {item.name}
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px' }}>
+                      <span style={{ fontSize: '0.95rem', color: 'var(--cyan)', fontWeight: 700 }}>Rs {item.price.toLocaleString()}</span>
+                      <button
+                        onClick={(e) => e.stopPropagation()}
+                        style={{ width: '32px', height: '32px', borderRadius: '8px', background: 'var(--bg3)', border: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
+                        aria-label="Add to cart"
+                      >
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>
+                      </button>
+                    </div>
+                    <div style={{ display: 'flex', gap: '8px' }}>
+                      <button
+                        onClick={(e) => { e.stopPropagation(); navigate(item.type === 'project' ? `/projects/${item.id}` : `/products/${item.id}`); }}
+                        className="btn-primary"
+                        style={{ flex: 1, padding: '9px', fontSize: '0.8rem' }}
+                      >
+                        Buy Now
+                      </button>
+                      <button
+                        onClick={(e) => { e.stopPropagation(); navigate(item.type === 'project' ? `/projects/${item.id}` : `/products/${item.id}`); }}
+                        className="btn-ghost"
+                        style={{ flex: 1, padding: '9px', fontSize: '0.8rem' }}
+                      >
+                        Quick View
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+            <button className="carousel-arrow next" onClick={() => scrollNewArrivals(1)} aria-label="Next">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="9 18 15 12 9 6" /></svg>
+            </button>
           </div>
         </section>
 

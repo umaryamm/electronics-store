@@ -242,6 +242,7 @@ header.site-header {
 /* ═══ PRODUCT / PROJECT CARD GRID ═══ */
 .product-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 20px; }
 .product-card {
+  position: relative;
   background: var(--card); border: 1px solid var(--border); border-radius: 18px;
   overflow: hidden; cursor: pointer; transition: transform 0.25s, box-shadow 0.25s;
   display: flex; flex-direction: column;
@@ -330,6 +331,92 @@ header.site-header {
   .carousel-arrow { width: 36px; height: 36px; }
   .carousel-arrow.prev { left: -8px; }
   .carousel-arrow.next { right: -8px; }
+}
+.cat-carousel {
+  display: flex;
+  gap: 24px;
+  overflow-x: auto;
+  scroll-behavior: smooth;
+  scrollbar-width: none;
+  padding: 4px 2px;
+}
+
+.cat-carousel::-webkit-scrollbar {
+  display: none;
+}
+
+.cat-carousel .cat-card {
+  flex: 0 0 240px;
+  width: 240px;
+  min-height: 280px;
+  padding: 0 0 20px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.cat-carousel .cat-image-wrap {
+  width: 100%;
+  height: 160px;
+  overflow: hidden;
+  border-radius: 12px 12px 0 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg3);
+}
+
+.cat-carousel .cat-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.3s ease;
+}
+
+.cat-carousel .cat-card:hover .cat-image {
+  transform: scale(1.06);
+}
+
+.cat-carousel .cat-emoji {
+  font-size: 2.6rem;
+}
+
+.cat-carousel .cat-name {
+  font-size: 1.05rem;
+  padding: 16px 20px 4px;
+}
+
+.cat-carousel .cat-count {
+  font-size: 0.85rem;
+  padding: 0 20px;
+}
+/* Category cards sized to match New Arrival / product-carousel cards */
+.cat-carousel-lg .cat-card {
+  flex: 0 0 320px;
+  width: 320px;
+  min-height: auto;
+  padding: 0 0 20px;
+}
+
+.cat-carousel-lg .cat-image-wrap {
+  width: 100%;
+  aspect-ratio: 1;
+  height: auto;
+  border-radius: 18px 18px 0 0;
+}
+
+.cat-carousel-lg .cat-name {s
+  font-size: 1rem;
+  padding: 16px 20px 4px;
+}
+
+.cat-carousel-lg .cat-count {
+  font-size: 0.85rem;
+  padding: 0 20px;
+}
+
+@media (max-width: 640px) {
+  .cat-carousel-lg .cat-card { flex: 0 0 260px; width: 260px; }
 }
 /* ═══ QUICK VIEW MODAL / SIGN-IN MODAL ═══ */
 .modal-overlay {
