@@ -1,25 +1,30 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { loadProjects } from '../data/catalog';
+import { getProjects } from '../api/projectService';
 import ProjectCard from '../components/ProjectCard';
 
 export default function Projects() {
   const [params, setParams] = useSearchParams();
-  const [data, setData] = useState({ projects: [], categories: [] });
-  const level = params.get('level') || 'university';
-  const activeCategory = params.get('category') || '';
+  const [projects, setProjects] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const activeCategory = params.get('category') || 'University';
 
   useEffect(() => {
-    loadProjects().then(setData);
-  }, []);
+    const fetchProjects = async () => {
+      try {
+        const res = await getProjects({ category: activeCategory });
+        setProjects(res.projects || []);
+      } catch (error) {
+        console.error('Error fetching projects:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
 
-  const levelBlock = data.categories.find((c) => c.id === level);
+    fetchProjects();
+  }, [activeCategory]);
 
-  const filtered = useMemo(() => {
-    let list = data.projects.filter((p) => p.level === level);
-    if (activeCategory) list = list.filter((p) => p.categoryId === activeCategory);
-    return list;
-  }, [data, level, activeCategory]);
+  if (loading) return <div className="container">Loading projects...</div>;
 
   return (
     <div className="container" style={{ paddingBottom: '80px' }}>
@@ -29,48 +34,24 @@ export default function Projects() {
       </div>
 
       <div className="level-tabs">
-        {data.categories.map((cat) => (
+        {['University', 'Commercial'].map((cat) => (
           <button
-            key={cat.id}
-            className={`level-tab${level === cat.id ? ' active' : ''}`}
-            onClick={() => setParams({ level: cat.id })}
+            key={cat}
+            className={`level-tab${activeCategory === cat ? ' active' : ''}`}
+            onClick={() => setParams({ category: cat })}
           >
-            {cat.emoji} {cat.name}
+            {cat === 'University' ? 'University Lab' : 'Commercial Core'}
           </button>
         ))}
       </div>
 
-      {levelBlock && (
-        <div className="cat-grid" style={{ marginBottom: '40px' }}>
-          <div
-            className="cat-card"
-            style={{ border: !activeCategory ? '1px solid var(--cyan)' : undefined }}
-            onClick={() => setParams({ level })}
-          >
-            <div className="cat-emoji">🗂️</div>
-            <div className="cat-name">All</div>
-            <div className="cat-count">{data.projects.filter((p) => p.level === level).length}</div>
-          </div>
-          {levelBlock.subcategories.map((sub) => (
-            <div
-              key={sub.id}
-              className="cat-card"
-              style={{ border: activeCategory === sub.id ? '1px solid var(--cyan)' : undefined }}
-              onClick={() => setParams({ level, category: sub.id })}
-            >
-              <div className="cat-emoji">{sub.emoji}</div>
-              <div className="cat-name">{sub.name}</div>
-              <div className="cat-count">{sub.count}</div>
-            </div>
-          ))}
-        </div>
-      )}
-
-      {filtered.length === 0 ? (
-        <div className="empty-state">No projects in this category yet.</div>
+      {projects.length === 0 ? (
+        <div className="empty-state">No projects yet.</div>
       ) : (
         <div className="product-grid">
-          {filtered.map((p) => <ProjectCard key={p.id} project={p} />)}
+          {projects.map((p) => (
+            <ProjectCard key={p.id} project={p} />
+          ))}
         </div>
       )}
     </div>
