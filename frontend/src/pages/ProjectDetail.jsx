@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import { loadProjects } from '../data/catalog';
+import { getProjectById, getProjects } from '../api/projectService';
 import { useCart } from '../context/CartContext';
 import ProjectCard from '../components/ProjectCard';
 
@@ -18,19 +18,22 @@ export default function ProjectDetail() {
     setNotFound(false);
     setProject(null);
 
-    loadProjects()
-      .then(({ projects }) => {
-        const found = projects.find((p) => String(p.id) === String(id));
+    getProjectById(id)
+      .then((res) => {
+        const found = res.project;
         if (!found) {
           setNotFound(true);
           return;
         }
         setProject(found);
-        // Related projects: same category + level, excluding this one.
-        const sameCategory = projects.filter(
-          (p) => p.categoryId === found.categoryId && p.level === found.level && String(p.id) !== String(id)
-        );
-        setRelated(sameCategory.slice(0, 4));
+
+        // Related projects: same category, excluding this one.
+        return getProjects({ category: found.category }).then((relRes) => {
+          const sameCategory = (relRes.projects || []).filter(
+            (p) => String(p.id) !== String(id)
+          );
+          setRelated(sameCategory.slice(0, 4));
+        });
       })
       .catch((err) => {
         console.error('Failed to load project:', err);
@@ -51,63 +54,54 @@ export default function ProjectDetail() {
 
   if (!project) return <div className="container" style={{ padding: '80px 0' }} />;
 
-  const rating = project.rating || 0;
-  const entireStars = Math.floor(rating);
-  const hasHalfStar = rating % 1 !== 0;
-  const stars = '★'.repeat(entireStars) + (hasHalfStar ? '☆' : '');
-  const imgSrc = typeof project.image === 'string' && project.image.startsWith('http') ? project.image : null;
+  const imgSrc = typeof project.imageUrl === 'string' && project.imageUrl.startsWith('http') ? project.imageUrl : null;
+  const badgeLabel = project.isNewArrival ? '🆕 New' : project.isFeatured ? '⭐ Featured' : null;
 
   return (
     <div className="container" style={{ paddingBottom: '80px' }}>
       <div className="breadcrumb">
         <Link to="/">Home</Link> / <Link to="/projects">Projects</Link>
         {project.category && (
-          <> / <Link to={`/projects?level=${project.level}&category=${project.categoryId}`}>{project.category}</Link></>
-        )} / {project.name}
+          <> / <Link to={`/projects?category=${project.category}`}>{project.category}</Link></>
+        )} / {project.title}
       </div>
 
       <div className="detail-layout" style={{ marginTop: '20px' }}>
         <div className="detail-img">
           {imgSrc ? (
-            <img src={imgSrc} alt={project.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+            <img src={imgSrc} alt={project.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
           ) : (
             <span style={{ fontSize: '6rem', width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              {project.emoji || '🛠️'}
+              🛠️
             </span>
           )}
-          {project.badge && (
-            <span className={project.badge.includes('%') ? 'badge-sale' : 'badge-new'} style={{ position: 'absolute', top: 16, left: 16 }}>
-              {project.badge}
+          {badgeLabel && (
+            <span className="badge-new" style={{ position: 'absolute', top: 16, left: 16 }}>
+              {badgeLabel}
             </span>
           )}
         </div>
 
         <div>
           {project.category && <div className="qv-cat">{project.category}</div>}
-          <div className="detail-name">{project.name}</div>
-          <div className="qv-rating">
-            {project.reviews > 0 ? (
-              <>{stars} <span>({rating.toFixed(1)} · {project.reviews.toLocaleString()} reviews)</span></>
-            ) : (
-              <span>No reviews yet</span>
-            )}
-          </div>
+          <div className="detail-name">{project.title}</div>
 
           <div className="detail-price" style={{ display: 'flex', alignItems: 'baseline', gap: '10px' }}>
-            <span>{project.difficulty || 'Project'}</span>
+            <span>{project.price ? `Rs ${project.price}` : 'Project'}</span>
             <span style={{ fontFamily: 'Inter, sans-serif', fontWeight: 400, fontSize: '0.95rem', color: 'var(--gray-mid)' }}>
-              · {project.duration}
+              · {project.status}
             </span>
           </div>
 
-          <p style={{ color: 'var(--text-sub)', lineHeight: 1.6, fontSize: '0.95rem' }}>{project.description}</p>
+          <p style={{ color: 'var(--text-sub)', lineHeight: 1.6, fontSize: '0.95rem' }}>
+            {project.introDescription || 'No description available.'}
+          </p>
 
-          {project.components?.length > 0 && (
-            <div style={{ margin: '8px 0 4px' }}>
-              <strong style={{ color: 'var(--text)', fontSize: '0.9rem' }}>Key Components:</strong>
-              <ul style={{ margin: '6px 0 0', paddingLeft: '18px', color: 'var(--text-sub)', fontSize: '0.9rem', lineHeight: 1.7 }}>
-                {project.components.map((c, i) => <li key={i}>{c}</li>)}
-              </ul>
+          {project.githubUrl && (
+            <div style={{ margin: '8px 0' }}>
+              <a href={project.githubUrl} target="_blank" rel="noreferrer" style={{ color: 'var(--cyan)', fontSize: '0.9rem' }}>
+                View on GitHub →
+              </a>
             </div>
           )}
 
@@ -134,6 +128,23 @@ export default function ProjectDetail() {
           </Link>
         </div>
       </div>
+
+      {Array.isArray(project.sections) && project.sections.length > 0 && (
+        <section className="section">
+          <div className="section-head"><h2>Working Process</h2></div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+            {project.sections.map((section, i) => (
+              <div key={section.id || i} style={{ border: '1px solid var(--border)', borderRadius: '10px', padding: '16px' }}>
+                <h3 style={{ margin: '0 0 8px' }}>{section.title || `Section ${i + 1}`}</h3>
+                {section.imageUrl && (
+                  <img src={section.imageUrl} alt={section.title} style={{ width: '100%', maxHeight: '260px', objectFit: 'cover', borderRadius: '8px', marginBottom: '10px' }} />
+                )}
+                <p style={{ color: 'var(--text-sub)', lineHeight: 1.6 }}>{section.description}</p>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
 
       {related.length > 0 && (
         <section className="section">
