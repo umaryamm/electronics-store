@@ -1,6 +1,9 @@
+import { useNavigate } from 'react-router-dom';
 import { BLOG_POSTS } from '../data/blogPosts';
 
 export default function Blog() {
+  const navigate = useNavigate();
+
   return (
     <div className="container" style={{ paddingBottom: '80px' }}>
       <div className="page-header">
@@ -10,13 +13,24 @@ export default function Blog() {
 
       <div className="blog-grid">
         {BLOG_POSTS.map((post) => (
-          <div className="blog-card" key={post.id}>
+          <div
+            className="blog-card"
+            key={post.id}
+            onClick={() => navigate(`/blog/${post.id}`)}
+            style={{ cursor: 'pointer' }}
+          >
             <div className="blog-img">{post.emoji}</div>
             <div className="blog-body">
               <div className="blog-meta">📅 {post.date} · 👤 {post.author}</div>
               <div className="blog-title">{post.title}</div>
               <p className="blog-excerpt">{post.excerpt}</p>
-              <span className="blog-read">Read More →</span>
+              <button
+                className="blog-read"
+                onClick={(e) => { e.stopPropagation(); navigate(`/blog/${post.id}`); }}
+                style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, font: 'inherit' }}
+              >
+                Read More →
+              </button>
             </div>
           </div>
         ))}
