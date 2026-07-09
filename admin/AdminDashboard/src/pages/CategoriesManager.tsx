@@ -5,14 +5,23 @@ import productsData from '../products.json';
 interface Category {
   id: string;
   name: string;
-  emoji: string;
+  imageUrl: string; // ✨ Replaced emoji icon with an image URL
 }
 
 export const CategoriesManager: React.FC = () => {
-  // Read core layout structures from our central data resource
-  const [categories, setCategories] = useState<Category[]>(() => productsData.categories);
+  // Read core layout structures from our central data resource.
+  // Existing categories from products.json only carry an emoji, so we map them
+  // into the new image-based shape (imageUrl starts empty -> shows placeholder).
+  const [categories, setCategories] = useState<Category[]>(() =>
+    productsData.categories.map((cat: any) => ({
+      id: cat.id,
+      name: cat.name,
+      imageUrl: cat.imageUrl || '' // no image yet for legacy seed data
+    }))
+  );
+
   const [newCatName, setNewCatName] = useState('');
-  const [newCatEmoji, setNewCatEmoji] = useState('📦');
+  const [newCatImageUrl, setNewCatImageUrl] = useState(''); // ✨ Image URL input state
 
   // Helper calculation function to count products per category tag matching key handles
   const getProductCountForCategory = (categoryId: string): number => {
@@ -37,12 +46,15 @@ export const CategoriesManager: React.FC = () => {
     const targetItem: Category = {
       id: generatedId,
       name: newCatName.trim(),
-      emoji: newCatEmoji
+      // ✨ Use the pasted image, or fall back to a neutral placeholder thumbnail
+      imageUrl:
+        newCatImageUrl.trim() ||
+        'https://images.unsplash.com/photo-1472851294608-062f824d29cc?w=500'
     };
 
     setCategories(prev => [...prev, targetItem]);
     setNewCatName('');
-    setNewCatEmoji('📦');
+    setNewCatImageUrl('');
     alert('Category added successfully!');
   };
 
@@ -65,26 +77,6 @@ export const CategoriesManager: React.FC = () => {
       <div style={{ backgroundColor: '#fff', padding: '1.5rem', borderRadius: '0.5rem', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', marginBottom: '2rem' }}>
         <h3 style={{ margin: '0 0 1.25rem 0', fontSize: '1.125rem', color: '#0f172a', fontWeight: '600' }}>✨ Create New Category</h3>
         <form onSubmit={handleAddCategory} style={{ display: 'flex', gap: '1.5rem', alignItems: 'flex-end', flexWrap: 'wrap' }}>
-          
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.375rem', width: '240px' }}>
-            <label style={{ fontSize: '0.875rem', fontWeight: '600', color: '#475569' }}>Category Icon / Emoji</label>
-            <select 
-              value={newCatEmoji} 
-              onChange={(e) => setNewCatEmoji(e.target.value)}
-              style={{ padding: '0.625rem', borderRadius: '0.375rem', border: '1px solid #cbd5e1', backgroundColor: '#fff', fontSize: '1rem', cursor: 'pointer', height: '42px', boxSizing: 'border-box' }}
-            >
-              <option value="📦">📦 General Goods</option>
-              <option value="📱">📱 Smart Devices</option>
-              <option value="💻">💻 Laptops & Computers</option>
-              <option value="🎧">🎧 Audio & Sound</option>
-              <option value="📷">📷 Cameras</option>
-              <option value="🎮">🎮 Gaming Accessories</option>
-              <option value="⌚">⌚ Wearables</option>
-              <option value="📁">📁 Office Supplies</option>
-              <option value="🏠">🏠 Smart Home</option>
-              <option value="🛠️">🛠️ Hardware Tools</option>
-            </select>
-          </div>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.375rem', flex: 1, minWidth: '240px' }}>
             <label style={{ fontSize: '0.875rem', fontWeight: '600', color: '#475569' }}>Category Name</label>
@@ -93,6 +85,18 @@ export const CategoriesManager: React.FC = () => {
               placeholder="e.g. Office Stationery"
               value={newCatName}
               onChange={(e) => setNewCatName(e.target.value)}
+              style={{ padding: '0.625rem', borderRadius: '0.375rem', border: '1px solid #cbd5e1', fontSize: '0.925rem', height: '42px', boxSizing: 'border-box' }}
+            />
+          </div>
+
+          {/* ✨ Image URL Input Field (replaces the old emoji dropdown) */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.375rem', flex: 1.5, minWidth: '260px' }}>
+            <label style={{ fontSize: '0.875rem', fontWeight: '600', color: '#475569' }}>Category Image URL</label>
+            <input
+              type="text"
+              placeholder="Paste image address (https://...)"
+              value={newCatImageUrl}
+              onChange={(e) => setNewCatImageUrl(e.target.value)}
               style={{ padding: '0.625rem', borderRadius: '0.375rem', border: '1px solid #cbd5e1', fontSize: '0.925rem', height: '42px', boxSizing: 'border-box' }}
             />
           </div>
@@ -107,10 +111,10 @@ export const CategoriesManager: React.FC = () => {
       </div>
 
       {/* 📊 DYNAMIC TOTAL NUMBERS BADGE AREA */}
-      <div style={{ 
-        marginBottom: '1rem', 
-        fontSize: '0.925rem', 
-        color: '#475569', 
+      <div style={{
+        marginBottom: '1rem',
+        fontSize: '0.925rem',
+        color: '#475569',
         fontWeight: '600',
         backgroundColor: '#e2e8f0',
         padding: '0.5rem 1rem',
@@ -125,10 +129,10 @@ export const CategoriesManager: React.FC = () => {
         <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
           <thead>
             <tr style={{ backgroundColor: '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
-              <th style={{ padding: '1rem', color: '#64748b', fontWeight: '600', width: '80px' }}>Icon</th>
+              <th style={{ padding: '1rem', color: '#64748b', fontWeight: '600', width: '110px' }}>Image</th> {/* ✨ Was "Icon" */}
               <th style={{ padding: '1rem', color: '#64748b', fontWeight: '600' }}>Category Display Name</th>
               <th style={{ padding: '1rem', color: '#64748b', fontWeight: '600' }}>System Tag ID</th>
-              <th style={{ padding: '1rem', color: '#64748b', fontWeight: '600' }}>Linked Products</th> {/* ✨ New Column */}
+              <th style={{ padding: '1rem', color: '#64748b', fontWeight: '600' }}>Linked Products</th>
               <th style={{ padding: '1rem', color: '#64748b', fontWeight: '600', textAlign: 'right' }}>Actions</th>
             </tr>
           </thead>
@@ -137,19 +141,32 @@ export const CategoriesManager: React.FC = () => {
               const itemsCount = getProductCountForCategory(cat.id);
               return (
                 <tr key={cat.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
-                  <td style={{ padding: '1rem', fontSize: '1.5rem' }}>{cat.emoji}</td>
+
+                  {/* ✨ Display Category Image Thumbnail (falls back to "No Img" box) */}
+                  <td style={{ padding: '1rem' }}>
+                    {cat.imageUrl ? (
+                      <img
+                        src={cat.imageUrl}
+                        alt={cat.name}
+                        style={{ width: '60px', height: '40px', objectFit: 'cover', borderRadius: '0.25rem', border: '1px solid #e2e8f0' }}
+                      />
+                    ) : (
+                      <div style={{ width: '60px', height: '40px', backgroundColor: '#f1f5f9', borderRadius: '0.25rem', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.75rem', color: '#94a3b8' }}>No Img</div>
+                    )}
+                  </td>
+
                   <td style={{ padding: '1rem', fontWeight: '600', color: '#0f172a' }}>{cat.name}</td>
                   <td style={{ padding: '1rem', color: '#64748b', fontFamily: 'monospace' }}>{cat.id}</td>
-                  
+
                   {/* Dynamic Product Allocation Count Metric */}
                   <td style={{ padding: '1rem' }}>
-                    <span style={{ 
-                      padding: '0.25rem 0.625rem', 
-                      borderRadius: '9999px', 
-                      fontSize: '0.8rem', 
-                      fontWeight: '600', 
-                      backgroundColor: itemsCount > 0 ? '#e0f2fe' : '#f1f5f9', 
-                      color: itemsCount > 0 ? '#0369a1' : '#64748b' 
+                    <span style={{
+                      padding: '0.25rem 0.625rem',
+                      borderRadius: '9999px',
+                      fontSize: '0.8rem',
+                      fontWeight: '600',
+                      backgroundColor: itemsCount > 0 ? '#e0f2fe' : '#f1f5f9',
+                      color: itemsCount > 0 ? '#0369a1' : '#64748b'
                     }}>
                       {itemsCount} {itemsCount === 1 ? 'item' : 'items'}
                     </span>

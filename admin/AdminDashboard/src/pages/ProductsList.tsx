@@ -128,7 +128,7 @@ export const ProductsList: React.FC = () => {
               <th style={{ padding: '1rem', color: '#64748b', fontWeight: '600' }}>Image</th>
               <th style={{ padding: '1rem', color: '#64748b', fontWeight: '600' }}>Product Name</th>
               <th style={{ padding: '1rem', color: '#64748b', fontWeight: '600' }}>Category</th>
-              <th style={{ padding: '1rem', color: '#64748b', fontWeight: '600' }}>Price</th>
+              <th style={{ padding: '1rem', color: '#64748b', fontWeight: '600' }}>Price (Rs)</th>
               <th style={{ padding: '1rem', color: '#64748b', fontWeight: '600' }}>Stock</th>
               <th style={{ padding: '1rem', color: '#64748b', fontWeight: '600' }}>Status</th>
               <th style={{ padding: '1rem', color: '#64748b', fontWeight: '600', textAlign: 'right' }}>Actions</th>
@@ -149,7 +149,7 @@ export const ProductsList: React.FC = () => {
                   )}
                 </td>
                 <td style={{ padding: '1rem', color: '#475569' }}>{product.category}</td>
-                <td style={{ padding: '1rem', fontWeight: '500', color: '#0f172a' }}>${product.price}</td>
+                <td style={{ padding: '1rem', fontWeight: '500', color: '#0f172a' }}>{product.price}</td>
                 <td style={{ padding: '1rem', color: (product.stockQuantity || 0) < 10 ? '#ef4444' : '#0f172a' }}>
                   <span style={{ fontWeight: (product.stockQuantity || 0) < 10 ? '700' : '400' }}>{product.stockQuantity} units</span>
                 </td>

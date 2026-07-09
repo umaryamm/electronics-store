@@ -9,8 +9,10 @@ import { ProductsList } from './pages/ProductsList';
 import { ProductForm } from './pages/ProductForm';
 import { OrdersList } from './pages/OrdersList';
 import { ClientQueries } from './pages/ClientQueries'; 
-import { ProjectsManager } from './pages/ProjectsManager';
+import { ProjectsList } from './pages/ProjectsList';
+import { ProjectForm } from './pages/ProjectForm';
 import { BlogsManager } from './pages/BlogsManager';
+import { BlogForm } from './pages/BlogForm';
 import { CategoriesManager } from './pages/CategoriesManager'; // Cleaned up import positioning
 
 // High-Order Component to protect pages from unauthenticated access
@@ -75,6 +77,22 @@ export default function App() {
               </ProtectedAdminRoute>
             } 
           />
+          <Route
+            path="/admin/blogs/new"
+            element={
+              <ProtectedAdminRoute>
+                <BlogForm />
+              </ProtectedAdminRoute>
+            }
+          />
+          <Route
+            path="/admin/blogs/edit/:id"
+            element={
+              <ProtectedAdminRoute>
+                <BlogForm />
+              </ProtectedAdminRoute>
+            }
+          />
           {/* Secure Route configuration for Category Management Interface */}
           <Route 
             path="/admin/categories" 
@@ -102,14 +120,32 @@ export default function App() {
                 <ClientQueries />
               </ProtectedAdminRoute>
             } 
-          />\
-          <Route 
-            path="/admin/projects" 
+          />
+
+          {/* Project Portfolio Management Routes */}
+          <Route
+            path="/admin/projects"
             element={
               <ProtectedAdminRoute>
-                <ProjectsManager />
+                <ProjectsList />
               </ProtectedAdminRoute>
-            } 
+            }
+          />
+          <Route
+            path="/admin/projects/new"
+            element={
+              <ProtectedAdminRoute>
+                <ProjectForm />
+              </ProtectedAdminRoute>
+            }
+          />
+          <Route
+            path="/admin/projects/edit/:id"
+            element={
+              <ProtectedAdminRoute>
+                <ProjectForm />
+              </ProtectedAdminRoute>
+            }
           />
 
           {/* Dynamic Fallback Redirection Wildcard Route */}

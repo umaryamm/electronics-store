@@ -17,6 +17,8 @@ export const ProductForm: React.FC = () => {
   const [imageUrl, setImageUrl] = useState('');
   const [quantity, setQuantity] = useState('');
   const [rating, setRating] = useState('0');
+  const [isFeatured, setIsFeatured] = useState(false);       // ✨ Featured flag
+  const [isNewArrival, setIsNewArrival] = useState(false);   // ✨ New Arrival flag
 
   // Pre-populate data if in Edit Mode (FLOW 2 Step 3)
   useEffect(() => {
@@ -30,6 +32,9 @@ export const ProductForm: React.FC = () => {
         setImageUrl(existingProduct.image); // Using internal reference as placeholder image URL[cite: 1]
         setQuantity('25'); // Fallback default inventory stock quantity
         setRating((existingProduct.rating || 0).toString()); //[cite: 1]
+        // ✨ Derive New Arrival from the existing "New" badge; Featured defaults off
+        setIsNewArrival(existingProduct.badge === 'New');
+        setIsFeatured(false);
       }
     }
   }, [isEditMode, id]);
@@ -59,6 +64,20 @@ export const ProductForm: React.FC = () => {
       return;
     }
 
+    // Payload now carries the two toggle flags (ready for backend wiring)
+    const payload = {
+      name: name.trim(),
+      description: description.trim(),
+      price: Number(price),
+      categoryId: category,
+      image: imageUrl.trim(),
+      stockQuantity: Number(quantity),
+      rating: numericRating,
+      isFeatured,       // ✨
+      isNewArrival      // ✨
+    };
+    console.log('Product payload:', payload);
+
     // Backend Simulation Save / Update Execution
     if (isEditMode) {
       alert('Product updated!'); // Flow 2 Step 3 Success Messaging
@@ -80,10 +99,10 @@ export const ProductForm: React.FC = () => {
         {/* Product Name */}
         <div>
           <label style={{ display: 'block', fontWeight: '600', marginBottom: '0.375rem', color: '#4b5563' }}>Product Name *</label>
-          <input 
-            type="text" 
-            value={name} 
-            onChange={(e) => setName(e.target.value)} 
+          <input
+            type="text"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
             placeholder="e.g. ProVision Premium"
             style={{ width: '100%', padding: '0.625rem', border: '1px solid #d1d5db', borderRadius: '0.375rem', boxSizing: 'border-box' }}
           />
@@ -92,8 +111,8 @@ export const ProductForm: React.FC = () => {
         {/* Category Selection Dropdown */}
         <div>
           <label style={{ display: 'block', fontWeight: '600', marginBottom: '0.375rem', color: '#4b5563' }}>Category Dropdown *</label>
-          <select 
-            value={category} 
+          <select
+            value={category}
             onChange={(e) => setCategory(e.target.value)}
             style={{ width: '100%', padding: '0.625rem', border: '1px solid #d1d5db', borderRadius: '0.375rem', boxSizing: 'border-box', backgroundColor: '#fff' }}
           >
@@ -107,21 +126,21 @@ export const ProductForm: React.FC = () => {
         {/* Price & Quantity Flex Block */}
         <div style={{ display: 'flex', gap: '1rem' }}>
           <div style={{ flex: 1 }}>
-            <label style={{ display: 'block', fontWeight: '600', marginBottom: '0.375rem', color: '#4b5563' }}>Price ($) *</label>
-            <input 
-              type="text" 
-              value={price} 
-              onChange={(e) => setPrice(e.target.value)} 
+            <label style={{ display: 'block', fontWeight: '600', marginBottom: '0.375rem', color: '#4b5563' }}>Price (Rs) *</label>
+            <input
+              type="text"
+              value={price}
+              onChange={(e) => setPrice(e.target.value)}
               placeholder="1299"
               style={{ width: '100%', padding: '0.625rem', border: '1px solid #d1d5db', borderRadius: '0.375rem', boxSizing: 'border-box' }}
             />
           </div>
           <div style={{ flex: 1 }}>
             <label style={{ display: 'block', fontWeight: '600', marginBottom: '0.375rem', color: '#4b5563' }}>Quantity *</label>
-            <input 
-              type="text" 
-              value={quantity} 
-              onChange={(e) => setQuantity(e.target.value)} 
+            <input
+              type="text"
+              value={quantity}
+              onChange={(e) => setQuantity(e.target.value)}
               placeholder="50"
               style={{ width: '100%', padding: '0.625rem', border: '1px solid #d1d5db', borderRadius: '0.375rem', boxSizing: 'border-box' }}
             />
@@ -131,10 +150,10 @@ export const ProductForm: React.FC = () => {
         {/* Image URL Input */}
         <div>
           <label style={{ display: 'block', fontWeight: '600', marginBottom: '0.375rem', color: '#4b5563' }}>Image Link URL *</label>
-          <input 
-            type="text" 
-            value={imageUrl} 
-            onChange={(e) => setImageUrl(e.target.value)} 
+          <input
+            type="text"
+            value={imageUrl}
+            onChange={(e) => setImageUrl(e.target.value)}
             placeholder="https://example.com/image.jpg"
             style={{ width: '100%', padding: '0.625rem', border: '1px solid #d1d5db', borderRadius: '0.375rem', boxSizing: 'border-box' }}
           />
@@ -143,24 +162,49 @@ export const ProductForm: React.FC = () => {
         {/* Optional Rating Field */}
         <div>
           <label style={{ display: 'block', fontWeight: '600', marginBottom: '0.375rem', color: '#4b5563' }}>Rating Optional (0-5)</label>
-          <input 
-            type="number" 
-            step="0.1" 
-            min="0" 
+          <input
+            type="number"
+            step="0.1"
+            min="0"
             max="5"
-            value={rating} 
-            onChange={(e) => setRating(e.target.value)} 
+            value={rating}
+            onChange={(e) => setRating(e.target.value)}
             style={{ width: '100%', padding: '0.625rem', border: '1px solid #d1d5db', borderRadius: '0.375rem', boxSizing: 'border-box' }}
           />
+        </div>
+
+        {/* ✨ Featured & New Arrival Toggle Checkboxes */}
+        <div>
+          <label style={{ display: 'block', fontWeight: '600', marginBottom: '0.5rem', color: '#4b5563' }}>Product Flags</label>
+          <div style={{ display: 'flex', gap: '2rem', flexWrap: 'wrap' }}>
+            <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', color: '#334155', fontSize: '0.925rem' }}>
+              <input
+                type="checkbox"
+                checked={isFeatured}
+                onChange={(e) => setIsFeatured(e.target.checked)}
+                style={{ width: '18px', height: '18px', cursor: 'pointer', accentColor: '#3b82f6' }}
+              />
+              ⭐ Featured Product
+            </label>
+            <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', color: '#334155', fontSize: '0.925rem' }}>
+              <input
+                type="checkbox"
+                checked={isNewArrival}
+                onChange={(e) => setIsNewArrival(e.target.checked)}
+                style={{ width: '18px', height: '18px', cursor: 'pointer', accentColor: '#10b981' }}
+              />
+              🆕 New Arrival
+            </label>
+          </div>
         </div>
 
         {/* Product Description */}
         <div>
           <label style={{ display: 'block', fontWeight: '600', marginBottom: '0.375rem', color: '#4b5563' }}>Product Description *</label>
-          <textarea 
+          <textarea
             rows={4}
-            value={description} 
-            onChange={(e) => setDescription(e.target.value)} 
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
             placeholder="Provide a comprehensive breakdown of product features..."
             style={{ width: '100%', padding: '0.625rem', border: '1px solid #d1d5db', borderRadius: '0.375rem', boxSizing: 'border-box', fontFamily: 'inherit' }}
           />
@@ -168,15 +212,15 @@ export const ProductForm: React.FC = () => {
 
         {/* Interaction Action Buttons Footer */}
         <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end', marginTop: '0.5rem' }}>
-          <button 
-            type="button" 
+          <button
+            type="button"
             onClick={() => navigate('/admin/products')}
             style={{ padding: '0.625rem 1.25rem', backgroundColor: '#f1f5f9', color: '#334155', border: 'none', borderRadius: '0.375rem', cursor: 'pointer', fontWeight: '600' }}
           >
             Cancel
           </button>
-          <button 
-            type="submit" 
+          <button
+            type="submit"
             style={{ padding: '0.625rem 1.25rem', backgroundColor: '#3b82f6', color: '#fff', border: 'none', borderRadius: '0.375rem', cursor: 'pointer', fontWeight: '600' }}
           >
             {isEditMode ? 'Save Modifications' : 'Add Product'}
