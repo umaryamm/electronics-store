@@ -263,9 +263,10 @@ export default function Home() {
 
       <div className="container">
         <section className="section">
-          <div className="section-head">
+          <div className="section-divider" />
+          <div className="section-head section-head-center">
             <div>
-              <h2>Shop Categories</h2>
+              <h2>Browse Categories</h2>
               <p>Explore our full range of premium electronics organized by what matters most to you.</p>
             </div>
           </div>
@@ -297,7 +298,8 @@ export default function Home() {
         </section>
 
         <section className="section">
-          <div className="section-head">
+          <div className="section-divider" />
+          <div className="section-head section-head-center">
             <div>
               <h2>New Arrivals</h2>
               <p>Fresh in stock — the latest products and project kits, just added.</p>
@@ -314,7 +316,7 @@ export default function Home() {
                     NEW
                   </div>
                   <div
-                    onClick={() => navigate(item.type === 'project' ? `/projects/${item.id}` : `/products/${item.id}`)}
+                    onClick={() => navigate(item.type === 'project' ? `/project/${item.id}` : `/products/${item.id}`)}
                     style={{ width: '100%', aspectRatio: '1', background: 'var(--bg3)', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', cursor: 'pointer' }}
                   >
                     {item.image ? (
@@ -325,7 +327,7 @@ export default function Home() {
                   </div>
                   <div style={{ padding: '12px 4px 4px' }}>
                     <div
-                      onClick={() => navigate(item.type === 'project' ? `/projects/${item.id}` : `/products/${item.id}`)}
+                      onClick={() => navigate(item.type === 'project' ? `/project/${item.id}` : `/products/${item.id}`)}
                       style={{ fontSize: '0.9rem', fontWeight: 600, marginBottom: '4px', cursor: 'pointer' }}
                     >
                       {item.name}
@@ -342,14 +344,14 @@ export default function Home() {
                     </div>
                     <div style={{ display: 'flex', gap: '8px' }}>
                       <button
-                        onClick={(e) => { e.stopPropagation(); navigate(item.type === 'project' ? `/projects/${item.id}` : `/products/${item.id}`); }}
+                        onClick={(e) => { e.stopPropagation(); navigate(item.type === 'project' ? `/project/${item.id}` : `/products/${item.id}`); }}
                         className="btn-primary"
                         style={{ flex: 1, padding: '9px', fontSize: '0.8rem' }}
                       >
                         Buy Now
                       </button>
                       <button
-                        onClick={(e) => { e.stopPropagation(); navigate(item.type === 'project' ? `/projects/${item.id}` : `/products/${item.id}`); }}
+                        onClick={(e) => { e.stopPropagation(); navigate(item.type === 'project' ? `/project/${item.id}` : `/products/${item.id}`); }}
                         className="btn-ghost"
                         style={{ flex: 1, padding: '9px', fontSize: '0.8rem' }}
                       >
@@ -367,6 +369,7 @@ export default function Home() {
         </section>
 
         <section className="section">
+          <div className="section-divider" />
           <div className="section-head section-head-center">
             <div>
               <h2>Featured Products</h2>
@@ -387,7 +390,8 @@ export default function Home() {
           </div>
         </section>
 
-        <section className="section">
+        <section className="section section-tinted">
+          <div className="section-divider" />
           <div className="section-head section-head-center">
             <div>
               <h2>Featured Projects</h2>
@@ -410,6 +414,7 @@ export default function Home() {
 
         {laserProducts.length > 0 && (
           <section className="section">
+            <div className="section-divider" />
             <div className="section-head section-head-center">
               <div>
                 <h2>Laser Modules</h2>
@@ -432,6 +437,7 @@ export default function Home() {
         )}
 
         <section className="section">
+          <div className="section-divider" />
           <div className="section-head" style={{ justifyContent: 'center', alignItems: 'center', textAlign: 'center', flexDirection: 'column' }}>
             <h2>Why Vision Giants?</h2>
             <p style={{ maxWidth: '520px', margin: '0 auto' }}>We're built for tech lovers who refuse to settle. Every order, every pixel, every watt — obsessively curated.</p>
@@ -440,8 +446,8 @@ export default function Home() {
             style={{
               display: 'grid',
               gridTemplateColumns: 'repeat(3, 1fr)',
-              gap: '20px',
-              maxWidth: '900px',
+              gap: '28px',
+              maxWidth: '1140px',
               margin: '0 auto',
               alignItems: 'stretch',
             }}
@@ -467,14 +473,14 @@ export default function Home() {
                     hoveredFeature === title && pressedFeature !== title
                       ? '0 12px 28px rgba(0,0,0,0.35)'
                       : 'none',
-                  borderRadius: '16px',
+                  borderRadius: '18px',
                 }}
               >
                 <BorderGlow
-                  backgroundColor="#11161f"
+                  backgroundColor="var(--card)"
                   glowColor="190 90% 65%"
                   colors={['#38bdf8', '#818cf8', '#f472b6']}
-                  borderRadius={16}
+                  borderRadius={18}
                   glowRadius={30}
                   edgeSensitivity={35}
                 >
@@ -482,9 +488,9 @@ export default function Home() {
                     spotlightColor="rgba(56, 189, 248, 0.25)"
                     className="feature-spotlight"
                   >
-                    <div style={{ textAlign: 'left', padding: '22px' }}>
-                      <h3 style={{ fontSize: '1rem', marginBottom: '6px', fontFamily: 'Space Grotesk, sans-serif' }}>{title}</h3>
-                      <p style={{ fontSize: '0.85rem', color: 'var(--text-sub)', lineHeight: 1.55 }}>{desc}</p>
+                    <div style={{ textAlign: 'left', padding: '32px', minHeight: '190px', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+                      <h3 style={{ fontSize: '1.15rem', marginBottom: '10px', fontFamily: 'Space Grotesk, sans-serif', color: 'var(--text)' }}>{title}</h3>
+                      <p style={{ fontSize: '0.92rem', color: 'var(--text-sub)', lineHeight: 1.6 }}>{desc}</p>
                     </div>
                   </SpotlightCard>
                 </BorderGlow>
@@ -494,6 +500,7 @@ export default function Home() {
         </section>
 
         <section className="section" style={{ paddingBottom: '0' }}>
+          <div className="section-divider" />
           <div className="form-card" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '20px' }}>
             <div>
               <h2 style={{ fontFamily: 'Space Grotesk, sans-serif', fontSize: '1.3rem' }}>Stay Ahead of the <span style={{ color: 'var(--cyan)' }}>Tech Curve</span></h2>

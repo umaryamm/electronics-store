@@ -6,6 +6,13 @@ export const BLOG_POSTS = [
     date: 'Jan 15, 2025',
     author: 'Ahmed Khan',
     excerpt: 'Learn how to build a connected weather station that sends real-time data to the cloud. This project uses affordable components and is perfect for IoT beginners.',
+    content: [
+      "A connected weather station is one of the most satisfying first IoT builds you can take on — it's cheap, it's visual, and you get to watch your own data roll in on a dashboard within an afternoon.",
+      'At the core of this build is the ESP8266, a low-cost WiFi microcontroller that handles both sensor readings and the network connection without needing a separate WiFi shield. Pair it with a DHT22 for temperature and humidity, and a BMP280 if you want barometric pressure readings too.',
+      "Wiring is straightforward: both sensors communicate over simple digital or I2C lines, so you won't need more than a handful of jumper wires and a breadboard to get started. Power the board over USB while prototyping, then move to a small battery pack with a voltage regulator once you're ready to mount it outdoors.",
+      "On the software side, the ESP8266 pushes readings to a cloud endpoint every few minutes using a lightweight HTTP or MQTT request. Free tiers on most IoT dashboard services are more than enough for a single station, and you can layer on push notifications for temperature thresholds once the basics are working.",
+      "Once it's running reliably indoors, the natural next step is weatherproofing — a simple radiation shield keeps direct sunlight from skewing your temperature readings outdoors.",
+    ],
   },
   {
     id: 'b2',
@@ -14,6 +21,13 @@ export const BLOG_POSTS = [
     date: 'Jan 12, 2025',
     author: 'Fatima Malik',
     excerpt: 'Step-by-step instructions for building your first autonomous robot. Perfect for school projects and science fairs. Includes circuit diagrams and code snippets.',
+    content: [
+      "If you're looking for a project that teaches the fundamentals of robotics without a steep learning curve, an obstacle-avoiding robot is hard to beat. It combines motor control, sensor input, and basic decision-making logic in one compact build.",
+      'The classic setup uses an Arduino Uno as the brain, an ultrasonic distance sensor (HC-SR04) mounted on the front, and a two-motor chassis kit driven through an L298N motor driver. The ultrasonic sensor pings the space ahead, and the Arduino decides whether to keep driving forward, reverse, or turn based on how close the nearest obstacle is.',
+      'For a slightly more capable build, mount the sensor on a small servo so it can sweep left and right at each obstacle, giving the robot a sense of which direction is actually clearer before it commits to a turn.',
+      'Power is usually the trickiest part for beginners — the motors draw far more current than the Arduino itself can supply, so a separate battery pack for the motor driver (kept electrically separate from the logic supply, but sharing a common ground) will save you a lot of erratic behavior and resets.',
+      "Once the core behavior works, it's easy to extend: add a line-following mode with IR sensors, or a Bluetooth module so you can manually override the robot from your phone when you want to.",
+    ],
   },
   {
     id: 'b3',
@@ -22,6 +36,13 @@ export const BLOG_POSTS = [
     date: 'Jan 10, 2025',
     author: 'Hassan Ali',
     excerpt: 'Avoid these common pitfalls when working with Arduino. From power supply issues to coding errors, we cover the most frequent problems and their solutions.',
+    content: [
+      '1. Powering motors or relays directly from the Arduino\'s 5V pin. The onboard regulator simply isn\'t built for it, and you\'ll see brownouts, resets, or a fried board. Always give higher-current components their own supply, tied to a common ground with the Arduino.',
+      "2. Leaving input pins floating. An unconnected digital input will read random noise, which shows up as a sensor or button that seems to trigger itself. Use `INPUT_PULLUP` in software, or add a physical pull-down resistor, so the pin has a defined state when nothing is pressed.",
+      '3. Blocking the loop with long `delay()` calls. Once a delay is running, the Arduino can\'t read sensors, respond to serial commands, or update other outputs. Swapping to a `millis()`-based timing pattern keeps everything responsive at once.',
+      "4. Forgetting that analog reads need settling time. Reading a sensor immediately after switching power to it, or right after a previous reading, can return a stale or noisy value — a short pause or an averaging loop fixes this reliably.",
+      '5. Not decoupling noisy components with capacitors. Motors, relays, and servos all generate electrical noise that can reset a poorly-decoupled board. A 100µF capacitor across the power rails near the noisy component is a cheap, effective fix.',
+    ],
   },
   {
     id: 'b4',
@@ -30,6 +51,13 @@ export const BLOG_POSTS = [
     date: 'Jan 8, 2025',
     author: 'Sara Siddiqui',
     excerpt: 'Create a simple home automation system using relay modules and WiFi. No expensive smart home hubs needed. Full code and diagrams included.',
+    content: [
+      "You don't need a commercial smart home hub to control your lights from your phone — a WiFi-enabled microcontroller and a relay module will get you there for a fraction of the cost.",
+      'The ESP8266 or ESP32 is the natural choice here since WiFi is built in. Each relay module switches the live wire to a lamp or light fixture on and off, controlled by a simple digital signal from the microcontroller — no need to touch the wiring beyond that switch point.',
+      'On the software side, the simplest approach is running a small web server directly on the microcontroller, so your phone just opens a local web page with on/off buttons for each light. For control from outside your home network, most people layer on a free MQTT broker and a companion app instead.',
+      'A word on safety: relay modules that switch mains voltage should always be mounted in an enclosure, with the mains-side wiring done carefully and, ideally, checked by someone experienced with home electrical work before it goes live.',
+      'Once the basic on/off control works, adding schedules, a manual physical switch that still works alongside the automation, or voice control through a smart speaker integration are all natural next steps.',
+    ],
   },
   {
     id: 'b5',
@@ -38,6 +66,13 @@ export const BLOG_POSTS = [
     date: 'Jan 5, 2025',
     author: 'Dr. Imran',
     excerpt: "Struggling with FYP ideas? We've compiled 20 innovative electronics project ideas that impress professors and are actually fun to build.",
+    content: [
+      "A good final year project sits at the intersection of three things: it should be genuinely interesting to you, ambitious enough to show real engineering effort, and scoped so it's actually finishable in one semester.",
+      'Strong categories to pick from include IoT and remote monitoring (smart agriculture, environmental sensing, asset tracking), embedded control systems (motor control, power electronics, robotics), and applied signal processing (audio, biomedical, or RF-adjacent projects).',
+      'A few standout ideas: a solar-powered irrigation controller with soil moisture feedback, a low-cost ECG or heart-rate monitor with a companion mobile app, an RFID-based attendance or access system, and a mobile robot that maps a small space using ultrasonic or LiDAR sensing.',
+      'Whatever you choose, build in a demo-able "wow moment" — a live dashboard, a working mobile app, or a physical demo you can run in front of your evaluation committee — since that\'s often what separates a project that gets a good grade from one that gets remembered.',
+      "Finally, start your component sourcing early. Delivery delays on a single part are the single most common reason final year projects slip behind schedule.",
+    ],
   },
   {
     id: 'b6',
@@ -46,5 +81,12 @@ export const BLOG_POSTS = [
     date: 'Jan 2, 2025',
     author: 'Ali Hassan',
     excerpt: 'Everything you need to build a racing drone from scratch. Includes component selection, assembly guide, and tuning tips from experienced builders.',
+    content: [
+      "Building your first FPV drone from parts, rather than buying one pre-built, teaches you far more about how the whole system fits together — and it's usually cheaper too, once you know what to buy.",
+      'The core stack is: a frame (a 5-inch frame is the most common starting point), four brushless motors, an equal number of electronic speed controllers (often combined into one 4-in-1 ESC), a flight controller, an FPV camera and video transmitter, and a receiver for your radio control link.',
+      "Matching your components matters more than chasing the highest specs on any single part — motor KV rating, propeller size, and battery cell count all need to work together, or you'll end up with a drone that either can't lift off cleanly or burns through batteries in under a minute.",
+      'Once assembled, most of the "tuning" work happens in the flight controller software: setting up your radio channels, calibrating the accelerometer, and dialing in PID values so the drone holds a stable hover before you start pushing it into faster, more aggressive flying.',
+      "Start every first flight in a wide open space, in a lower-power rate mode, and expect a few crashes while you build muscle memory — it's a normal part of learning to fly FPV, not a sign you did the build wrong.",
+    ],
   },
 ];

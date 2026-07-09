@@ -7,6 +7,14 @@ const router = express.Router();
 const prisma = new PrismaClient();
 
 // ==========================
+// HARDCODED ADMIN CREDENTIALS
+// ==========================
+// Change these to whatever you want. This account does NOT need to
+// exist in the database — it's checked before the DB lookup below.
+const HARDCODED_ADMIN_EMAIL = 'admin@example.com';
+const HARDCODED_ADMIN_PASSWORD = 'admin123';
+
+// ==========================
 // SIGNUP
 // ==========================
 router.post('/signup', async (req, res) => {
@@ -78,6 +86,36 @@ router.post('/login', async (req, res) => {
     if (!email || !password) {
       return res.status(400).json({
         message: 'Please provide email and password.'
+      });
+    }
+
+    // ==========================
+    // HARDCODED ADMIN CHECK
+    // ==========================
+    // If the submitted credentials match the hardcoded admin account,
+    // skip the database lookup entirely and issue a real signed JWT
+    // with role: "ADMIN". This token behaves exactly like a DB-issued
+    // one, so every existing auth/admin-protected route (products,
+    // categories, orders, etc.) keeps working with no other changes.
+    if (email === HARDCODED_ADMIN_EMAIL && password === HARDCODED_ADMIN_PASSWORD) {
+      const token = jwt.sign(
+        {
+          userId: 0,
+          role: 'ADMIN'
+        },
+        process.env.JWT_SECRET,
+        { expiresIn: '7d' }
+      );
+
+      return res.status(200).json({
+        message: 'Login successful.',
+        token,
+        user: {
+          id: 0,
+          name: 'Admin',
+          email: HARDCODED_ADMIN_EMAIL,
+          role: 'ADMIN'
+        }
       });
     }
 

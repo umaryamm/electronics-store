@@ -1,25 +1,25 @@
 import { useNavigate } from 'react-router-dom';
-import { useQuickView } from '../context/QuickViewContext';
+import { useCart } from '../context/CartContext';
 
 const WHATSAPP_NUMBER = '923000000000'; // ← your real WhatsApp number, no + sign
 
-// Same skeleton as ProductCard / New Arrival cards — square 1:1 image,
-// identical paddings and button row — so all carousel cards share the
-// exact same width and height. (Previously this file was a broken copy
-// of ProductCard that expected a `product` prop; it now correctly takes
-// `project`.)
+// Same skeleton as ProductCard — square 1:1 image, compact paddings/font sizes
+// so cards stay small and match the product-grid card size. Clicking the card
+// (or its image/name) opens the full project detail page at /project/:id.
+// The former "Quick View" button now adds the project kit straight to cart.
 export default function ProjectCard({ project }) {
   const navigate = useNavigate();
-  const { openProjectQuickView } = useQuickView();
+  const { addToCart } = useCart();
 
   const whatsappLink = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(
     `Hi! I'm interested in the project kit: ${project.name}`
   )}`;
 
+  const goToProject = () => navigate(`/project/${project.id}`);
   const imgSrc = typeof project.image === 'string' && project.image.startsWith('http') ? project.image : null;
 
   return (
-    <div className="product-card" onClick={() => openProjectQuickView(project)}>
+    <div className="product-card" onClick={goToProject}>
       {project.badge && (
         <div
           style={{
@@ -32,7 +32,7 @@ export default function ProjectCard({ project }) {
         </div>
       )}
 
-      {/* Square image area — identical to New Arrival card */}
+      {/* Square image area — identical to ProductCard */}
       <div
         style={{
           width: '100%', aspectRatio: '1', background: 'var(--bg3)', borderRadius: '10px',
@@ -58,11 +58,11 @@ export default function ProjectCard({ project }) {
         </div>
 
         {/* Meta row sits where the price row sits on product cards, keeping heights equal */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px', minHeight: '32px' }}>
-          <span style={{ fontSize: '0.95rem', color: 'var(--cyan)', fontWeight: 700 }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px' }}>
+          <span style={{ fontSize: '0.85rem', color: 'var(--cyan)', fontWeight: 700 }}>
             {project.difficulty || 'Project'}
           </span>
-          <span style={{ fontSize: '0.78rem', color: 'var(--gray-mid)' }}>
+          <span style={{ fontSize: '0.75rem', color: 'var(--gray-mid)' }}>
             {project.duration || ''}
           </span>
         </div>
@@ -71,9 +71,9 @@ export default function ProjectCard({ project }) {
           <button
             className="btn-primary"
             style={{ flex: 1, padding: '9px', fontSize: '0.8rem', justifyContent: 'center' }}
-            onClick={(e) => { e.stopPropagation(); openProjectQuickView(project); }}
+            onClick={(e) => { e.stopPropagation(); addToCart(project.id, 1); }}
           >
-            Quick View
+            🛒 Add to Cart
           </button>
           <a
             className="btn-ghost"
