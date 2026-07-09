@@ -4,6 +4,7 @@ import Home from './pages/Home';
 import Products from './pages/Products';
 import ProductDetail from './pages/ProductDetail';
 import Projects from './pages/Projects';
+import ProjectDetail from './pages/ProjectDetail';
 import Cart from './pages/Cart';
 import Checkout from './pages/Checkout';
 import Blog from './pages/Blog';
@@ -29,6 +30,7 @@ export default function App() {
                   <Route path="/products" element={<Products />} />
                   <Route path="/product/:id" element={<ProductDetail />} />
                   <Route path="/projects" element={<Projects />} />
+                  <Route path="/project/:id" element={<ProjectDetail />} />
                   <Route path="/cart" element={<Cart />} />
                   <Route path="/checkout" element={<Checkout />} />
                   <Route path="/blog" element={<Blog />} />
