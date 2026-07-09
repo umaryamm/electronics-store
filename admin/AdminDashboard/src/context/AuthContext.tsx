@@ -20,28 +20,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   });
 
   const login = async (email: string, password: string): Promise<boolean> => {
-    // ============================================================
-    // TEMPORARY DEV BYPASS — Neon DB is currently unreachable.
-    // Remove this block once the DB is confirmed stable again.
-    // This only unlocks the admin UI locally; any request that hits
-    // the real backend (e.g. saving a project) will still fail auth
-    // because 'dev-bypass-token' is not a real JWT.
-    // ============================================================
-    if (email === 'admin@example.com' && password === 'admin123') {
-      const successfulAuth: AuthState = {
-        isAuthenticated: true,
-        token: 'dev-bypass-token',
-        user: { id: 0, name: 'Dev Admin', email, role: 'ADMIN' }
-      };
-      setAuth(successfulAuth);
-      localStorage.setItem('admin_auth', JSON.stringify(successfulAuth));
-      localStorage.setItem('token', 'dev-bypass-token');
-      return true;
-    }
-    // ============================================================
-    // END TEMPORARY DEV BYPASS
-    // ============================================================
-
     try {
       const res = await axios.post(`${API_URL}/api/auth/login`, { email, password });
       const { token, user } = res.data;
