@@ -1,7 +1,9 @@
 // src/pages/ProjectForm.tsx
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { Project, ContentSection, initialProjects, makeSectionId } from './ProjectsList';
+import { getProjectById, createProject, updateProject, ContentSection } from '../api/projectService';
+
+const makeSectionId = () => `sec-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
 
 const blankSection = (): ContentSection => ({
   id: makeSectionId(),
@@ -23,10 +25,13 @@ export const ProjectForm: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const isEditMode = Boolean(id);
 
+  const [loading, setLoading] = useState(isEditMode);
+  const [submitting, setSubmitting] = useState(false);
+
   const [title, setTitle] = useState('');
   const [imageUrl, setImageUrl] = useState('');
   const [category, setCategory] = useState<'Commercial' | 'University'>('Commercial');
-  const [status, setStatus] = useState<Project['status']>('In Progress');
+  const [status, setStatus] = useState<'In Progress' | 'Completed' | 'On Hold'>('In Progress');
   const [price, setPrice] = useState('');
   const [isFeatured, setIsFeatured] = useState(false);
   const [isNewArrival, setIsNewArrival] = useState(false);
@@ -35,24 +40,29 @@ export const ProjectForm: React.FC = () => {
   const [introImageUrl, setIntroImageUrl] = useState('');
   const [sections, setSections] = useState<ContentSection[]>([]);
 
-  // Pre-populate data if in Edit Mode
+  // Pre-populate data if in Edit Mode — real backend fetch
   useEffect(() => {
     if (isEditMode && id) {
-      // Swap this lookup for a real fetch/store call once the backend is wired up
-      const existingProject = initialProjects.find(p => p.id === id);
-      if (existingProject) {
-        setTitle(existingProject.title);
-        setImageUrl(existingProject.imageUrl);
-        setCategory(existingProject.category);
-        setStatus(existingProject.status);
-        setPrice(existingProject.price.toString());
-        setIsFeatured(existingProject.isFeatured);
-        setIsNewArrival(existingProject.isNewArrival);
-        setGithubUrl(existingProject.githubUrl);
-        setIntroDescription(existingProject.introDescription);
-        setIntroImageUrl(existingProject.introImageUrl);
-        setSections(existingProject.sections.map(s => ({ ...s })));
-      }
+      getProjectById(Number(id))
+        .then((res) => {
+          const p = res.project;
+          setTitle(p.title || '');
+          setImageUrl(p.imageUrl || '');
+          setCategory(p.category || 'Commercial');
+          setStatus(p.status || 'In Progress');
+          setPrice(p.price != null ? String(p.price) : '');
+          setIsFeatured(Boolean(p.isFeatured));
+          setIsNewArrival(Boolean(p.isNewArrival));
+          setGithubUrl(p.githubUrl || '');
+          setIntroDescription(p.introDescription || '');
+          setIntroImageUrl(p.introImageUrl || '');
+          setSections(Array.isArray(p.sections) ? p.sections : []);
+        })
+        .catch((err) => {
+          console.error(err);
+          alert('Could not load project.');
+        })
+        .finally(() => setLoading(false));
     }
   }, [isEditMode, id]);
 
@@ -61,7 +71,7 @@ export const ProjectForm: React.FC = () => {
   const updateSection = (sectionId: string, patch: Partial<ContentSection>) =>
     setSections(prev => prev.map(s => (s.id === sectionId ? { ...s, ...patch } : s)));
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (!title.trim()) {
@@ -89,17 +99,26 @@ export const ProjectForm: React.FC = () => {
         .filter(s => s.title.trim() || s.imageUrl.trim() || s.description.trim())
         .map(s => ({ ...s, title: s.title.trim(), imageUrl: s.imageUrl.trim(), description: s.description.trim() }))
     };
-    console.log('Project payload:', payload);
 
-    // Backend simulation save / update
-    if (isEditMode) {
-      alert('Project updated!');
-    } else {
-      alert('Project entry logged successfully!');
+    setSubmitting(true);
+    try {
+      if (isEditMode && id) {
+        await updateProject(Number(id), payload);
+        alert('Project updated!');
+      } else {
+        await createProject(payload);
+        alert('Project entry logged successfully!');
+      }
+      navigate('/admin/projects');
+    } catch (error: any) {
+      console.error(error);
+      alert(error?.response?.data?.message || 'Error saving project.');
+    } finally {
+      setSubmitting(false);
     }
-
-    navigate('/admin/projects');
   };
+
+  if (loading) return <div style={{ padding: '2rem' }}>Loading project...</div>;
 
   return (
     <div style={{ maxWidth: '760px', backgroundColor: '#fff', padding: '2rem', borderRadius: '0.5rem', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', margin: '0 auto' }}>
@@ -116,9 +135,9 @@ export const ProjectForm: React.FC = () => {
 
         {/* Price (Rupees) */}
         <div>
-          <label style={{ display: 'block', fontWeight: '600', marginBottom: '0.375rem', color: '#4b5563' }}>Price (₹)</label>
+          <label style={{ display: 'block', fontWeight: '600', marginBottom: '0.375rem', color: '#4b5563' }}>Price (Rs)</label>
           <div style={{ position: 'relative' }}>
-            <span style={{ position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)', color: '#64748b', fontWeight: '600', pointerEvents: 'none' }}>₹</span>
+            <span style={{ position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)', color: '#64748b', fontWeight: '600', pointerEvents: 'none' }}>Rs</span>
             <input
               type="text"
               value={price}
@@ -216,7 +235,7 @@ export const ProjectForm: React.FC = () => {
         {isEditMode && (
           <div>
             <label style={{ display: 'block', fontWeight: '600', marginBottom: '0.375rem', color: '#4b5563' }}>Pipeline Status</label>
-            <select value={status} onChange={(e) => setStatus(e.target.value as Project['status'])} style={{ ...inputStyle, backgroundColor: '#fff', cursor: 'pointer' }}>
+            <select value={status} onChange={(e) => setStatus(e.target.value as 'In Progress' | 'Completed' | 'On Hold')} style={{ ...inputStyle, backgroundColor: '#fff', cursor: 'pointer' }}>
               <option value="In Progress">In Progress</option>
               <option value="Completed">Completed</option>
               <option value="On Hold">On Hold</option>
@@ -244,8 +263,8 @@ export const ProjectForm: React.FC = () => {
           <button type="button" onClick={() => navigate('/admin/projects')} style={{ padding: '0.625rem 1.25rem', backgroundColor: '#f1f5f9', color: '#334155', border: 'none', borderRadius: '0.375rem', cursor: 'pointer', fontWeight: '600' }}>
             Cancel
           </button>
-          <button type="submit" style={{ padding: '0.625rem 1.25rem', backgroundColor: '#3b82f6', color: '#fff', border: 'none', borderRadius: '0.375rem', cursor: 'pointer', fontWeight: '600' }}>
-            {isEditMode ? 'Save Modifications' : 'Add Project'}
+          <button type="submit" disabled={submitting} style={{ padding: '0.625rem 1.25rem', backgroundColor: '#3b82f6', color: '#fff', border: 'none', borderRadius: '0.375rem', cursor: submitting ? 'not-allowed' : 'pointer', fontWeight: '600', opacity: submitting ? 0.7 : 1 }}>
+            {submitting ? 'Saving...' : isEditMode ? 'Save Modifications' : 'Add Project'}
           </button>
         </div>
       </form>

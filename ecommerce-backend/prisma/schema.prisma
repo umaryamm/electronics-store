@@ -7,20 +7,14 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-enum Role {
-  USER
-  ADMIN
-}
-
 model User {
-  id        Int      @id @default(autoincrement())
-  email     String   @unique
+  id        Int       @id @default(autoincrement())
+  email     String    @unique
   password  String
   name      String
   phone     String?
-  role      Role     @default(USER)
-  createdAt DateTime @default(now())
-
+  createdAt DateTime  @default(now())
+  role      Role      @default(USER)
   addresses Address[]
   cart      Cart?
   orders    Order[]
@@ -34,22 +28,21 @@ model Category {
 }
 
 model Product {
-  id            Int      @id @default(autoincrement())
+  id            Int         @id @default(autoincrement())
   name          String
-  description   String
   price         Float
-  stock         Int
-  imageUrl      String
+  description   String
   categoryId    Int
-  category      Category @relation(fields: [categoryId], references: [id])
-  averageRating Float    @default(0)
-  reviewCount   Int      @default(0)
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
-
-  cartItems  CartItem[]
-  orderItems OrderItem[]
-  reviews    Review[]
+  imageUrl      String
+  stock         Int
+  createdAt     DateTime    @default(now())
+  averageRating Float       @default(0)
+  reviewCount   Int         @default(0)
+  updatedAt     DateTime    @updatedAt
+  cartItems     CartItem[]
+  orderItems    OrderItem[]
+  category      Category    @relation(fields: [categoryId], references: [id])
+  reviews       Review[]
 
   @@index([name])
   @@index([price])
@@ -60,26 +53,23 @@ model Product {
 model Cart {
   id        Int        @id @default(autoincrement())
   userId    Int        @unique
+  updatedAt DateTime   @updatedAt
   user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
   items     CartItem[]
-  updatedAt DateTime   @updatedAt
 }
 
 model CartItem {
   id        Int     @id @default(autoincrement())
   cartId    Int
-  cart      Cart    @relation(fields: [cartId], references: [id], onDelete: Cascade)
   productId Int
-  product   Product @relation(fields: [productId], references: [id])
   quantity  Int
+  cart      Cart    @relation(fields: [cartId], references: [id], onDelete: Cascade)
+  product   Product @relation(fields: [productId], references: [id])
 }
 
 model Order {
   id              Int         @id @default(autoincrement())
   userId          Int
-  user            User        @relation(fields: [userId], references: [id])
-  items           OrderItem[]
-  billingAddress  String
   shippingAddress String
   shippingMethod  String
   shippingCost    Float
@@ -88,10 +78,13 @@ model Order {
   total           Float
   paymentMethod   String      @default("COD")
   status          String      @default("pending")
-  notes           String?
   trackingNumber  String?
   createdAt       DateTime    @default(now())
   updatedAt       DateTime    @updatedAt
+  billingAddress  String
+  notes           String?
+  user            User        @relation(fields: [userId], references: [id])
+  items           OrderItem[]
 
   @@index([userId])
   @@index([createdAt])
@@ -100,24 +93,24 @@ model Order {
 model OrderItem {
   id           Int     @id @default(autoincrement())
   orderId      Int
-  order        Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
   productId    Int
-  product      Product @relation(fields: [productId], references: [id])
   productName  String
   quantity     Int
   priceAtOrder Float
+  order        Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product      Product @relation(fields: [productId], references: [id])
 }
 
 model Address {
   id        Int      @id @default(autoincrement())
   userId    Int
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   type      String
   fullName  String
   street    String
   city      String
   phone     String
   createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, type])
 }
@@ -125,13 +118,13 @@ model Address {
 model Review {
   id        Int      @id @default(autoincrement())
   productId Int
-  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
   userId    Int
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   rating    Int
   title     String
   comment   String
   createdAt DateTime @default(now())
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model BlogPost {
@@ -146,23 +139,28 @@ model BlogPost {
 }
 
 model Project {
-  id          Int      @id @default(autoincrement())
-  name        String
-  description String      // Brief overview
-  steps       Json        // Structured step-by-step: [{title, content, order}, ...]
-  difficulty  String?
-  duration    String?
-  rating      Float    @default(0)
-  reviews     Int      @default(0)
-  category    String
-  categoryId  Int?
-  level       String
-  badge       String?
-  imageUrl    String?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id               Int       @id @default(autoincrement())
+  category         String
+  imageUrl         String?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+  completionDate   DateTime?
+  githubUrl        String?
+  introDescription String?
+  introImageUrl    String?
+  isFeatured       Boolean   @default(false)
+  isNewArrival     Boolean   @default(false)
+  price            Float     @default(0)
+  sections         Json      @default("[]")
+  status           String    @default("In Progress")
+  title            String
 
-  @@index([level])
-  @@index([categoryId])
+  @@index([category])
+  @@index([status])
   @@index([createdAt])
+}
+
+enum Role {
+  USER
+  ADMIN
 }

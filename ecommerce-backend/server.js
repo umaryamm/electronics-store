@@ -12,15 +12,35 @@ const addressRoutes = require("./routes/addresses");
 const orderRoutes = require("./routes/orders");
 const reviewRoutes = require("./routes/reviews");
 const blogRoutes = require("./routes/blog");
+const projectRoutes = require('./routes/projects');
 
 const app = express();
 
 app.use(express.json());
 
+// ---------------------------------------------------------------------
+// CORS - single source of truth. Add any new Vite dev ports here if
+// your frontend/admin ever spins up on a different port.
+// ---------------------------------------------------------------------
+const allowedOrigins = [
+  "http://localhost:5173",
+  "http://localhost:5174",
+  "http://localhost:5175",
+  "http://localhost:5176",
+  "http://localhost:5000",
+];
+
 app.use(cors({
-    origin: ["http://localhost:5174", "http://localhost:5173", "http://localhost:5000"],
-    credentials: true
+  origin: function (origin, callback) {
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error("Not allowed by CORS"));
+    }
+  },
+  credentials: true
 }));
+
 app.use('/api/auth', authRoutes);
 app.use("/api/test", testRoutes);
 app.use("/api/categories", categoryRoutes);
@@ -30,6 +50,7 @@ app.use("/api/addresses", addressRoutes);
 app.use("/api/orders", orderRoutes);
 app.use("/api", reviewRoutes);
 app.use("/api/blog", blogRoutes);
+app.use('/api/projects', projectRoutes);
 
 // ---------------------------------------------------------------------
 // Serve the built React apps so both the storefront and the admin panel

@@ -10,17 +10,17 @@ export const Login: React.FC = () => {
   const { login } = useAuth();
   const navigate = useNavigate();
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    setError('');
-    
-    const success = login(email, password);
-    if (success) {
-      navigate('/admin');
-    } else {
-      setError('Invalid admin credentials or role unauthorized.');
-    }
-  };
+ const handleSubmit = async (e: React.FormEvent) => {
+  e.preventDefault();
+  setError('');
+  
+  const success = await login(email, password);
+  if (success) {
+    navigate('/admin');
+  } else {
+    setError('Invalid admin credentials or role unauthorized.');
+  }
+};
 
   return (
     <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100vh', backgroundColor: '#f3f4f6' }}>

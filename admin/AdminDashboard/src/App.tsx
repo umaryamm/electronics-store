@@ -20,7 +20,7 @@ const ProtectedAdminRoute: React.FC<{ children: React.ReactNode }> = ({ children
   const { auth } = useAuth();
 
   // If user isn't logged in, redirect them immediately to admin login page
-  if (!auth.isAuthenticated || auth.user?.role !== 'admin') {
+  if (!auth.isAuthenticated || auth.user?.role !== 'ADMIN') {
     return <Navigate to="/admin/login" replace />;
   }
 
