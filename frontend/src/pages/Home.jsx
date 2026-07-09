@@ -263,9 +263,10 @@ export default function Home() {
 
       <div className="container">
         <section className="section">
-          <div className="section-head">
+          <div className="section-divider" />
+          <div className="section-head section-head-center">
             <div>
-              <h2>Shop Categories</h2>
+              <h2>Browse Categories</h2>
               <p>Explore our full range of premium electronics organized by what matters most to you.</p>
             </div>
           </div>
@@ -297,7 +298,8 @@ export default function Home() {
         </section>
 
         <section className="section">
-          <div className="section-head">
+          <div className="section-divider" />
+          <div className="section-head section-head-center">
             <div>
               <h2>New Arrivals</h2>
               <p>Fresh in stock — the latest products and project kits, just added.</p>
@@ -367,6 +369,7 @@ export default function Home() {
         </section>
 
         <section className="section">
+          <div className="section-divider" />
           <div className="section-head section-head-center">
             <div>
               <h2>Featured Products</h2>
@@ -387,7 +390,8 @@ export default function Home() {
           </div>
         </section>
 
-        <section className="section">
+        <section className="section section-tinted">
+          <div className="section-divider" />
           <div className="section-head section-head-center">
             <div>
               <h2>Featured Projects</h2>
@@ -410,6 +414,7 @@ export default function Home() {
 
         {laserProducts.length > 0 && (
           <section className="section">
+            <div className="section-divider" />
             <div className="section-head section-head-center">
               <div>
                 <h2>Laser Modules</h2>
@@ -432,6 +437,7 @@ export default function Home() {
         )}
 
         <section className="section">
+          <div className="section-divider" />
           <div className="section-head" style={{ justifyContent: 'center', alignItems: 'center', textAlign: 'center', flexDirection: 'column' }}>
             <h2>Why Vision Giants?</h2>
             <p style={{ maxWidth: '520px', margin: '0 auto' }}>We're built for tech lovers who refuse to settle. Every order, every pixel, every watt — obsessively curated.</p>
@@ -494,6 +500,7 @@ export default function Home() {
         </section>
 
         <section className="section" style={{ paddingBottom: '0' }}>
+          <div className="section-divider" />
           <div className="form-card" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '20px' }}>
             <div>
               <h2 style={{ fontFamily: 'Space Grotesk, sans-serif', fontSize: '1.3rem' }}>Stay Ahead of the <span style={{ color: 'var(--cyan)' }}>Tech Curve</span></h2>
