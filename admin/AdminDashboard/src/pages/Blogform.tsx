@@ -2,7 +2,15 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import productsData from '../products.json';
-import { BlogPost, LinkedProduct, initialBlogPosts, makeLinkId } from './BlogsManager';
+import {
+  BlogPost,
+  LinkedProduct,
+  BlogStatus,
+  makeLinkId,
+  getBlog,
+  createBlog,
+  updateBlog
+} from '../api/blogService';
 
 const blankLink = (): LinkedProduct => ({
   id: makeLinkId(),
@@ -23,29 +31,51 @@ export const BlogForm: React.FC = () => {
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
   const isEditMode = Boolean(id);
+  const numericId = id ? Number(id) : null;
 
   const [title, setTitle] = useState('');
   const [url, setUrl] = useState('');
-  const [status, setStatus] = useState<BlogPost['status']>('Draft');
+  const [status, setStatus] = useState<BlogStatus>('Draft');
   const [description, setDescription] = useState('');
   const [imageUrl, setImageUrl] = useState('');
   const [linkedProducts, setLinkedProducts] = useState<LinkedProduct[]>([]);
 
-  // Pre-populate data if in Edit Mode
+  const [loading, setLoading] = useState(false);
+  const [saving, setSaving] = useState(false);
+  // Tracks whether the pasted image URL actually loads, so we can give feedback.
+  const [imgStatus, setImgStatus] = useState<'idle' | 'loading' | 'ok' | 'error'>('idle');
+
+  // Pre-populate data if in Edit Mode — now a real API fetch.
   useEffect(() => {
-    if (isEditMode && id) {
-      // Swap this lookup for a real fetch/store call once the backend is wired up
-      const existingPost = initialBlogPosts.find(p => p.id === id);
-      if (existingPost) {
-        setTitle(existingPost.title);
-        setUrl(existingPost.url);
-        setStatus(existingPost.status);
-        setDescription(existingPost.description);
-        setImageUrl(existingPost.imageUrl);
-        setLinkedProducts(existingPost.linkedProducts.map(link => ({ ...link })));
-      }
-    }
-  }, [isEditMode, id]);
+    if (!isEditMode || numericId == null) return;
+
+    let active = true;
+    setLoading(true);
+    getBlog(numericId)
+      .then((post: BlogPost) => {
+        if (!active) return;
+        setTitle(post.title);
+        setUrl(post.url);
+        setStatus(post.status);
+        setDescription(post.description);
+        setImageUrl(post.imageUrl);
+        setLinkedProducts(post.linkedProducts.map(link => ({ ...link })));
+      })
+      .catch((err) => {
+        console.error(err);
+        alert('Could not load this blog post.');
+        navigate('/admin/blogs');
+      })
+      .finally(() => { if (active) setLoading(false); });
+
+    return () => { active = false; };
+  }, [isEditMode, numericId, navigate]);
+
+  // Reset the preview state whenever the URL changes.
+  useEffect(() => {
+    const trimmed = imageUrl.trim();
+    setImgStatus(trimmed ? 'loading' : 'idle');
+  }, [imageUrl]);
 
   const addLink = () => setLinkedProducts(prev => [...prev, blankLink()]);
   const removeLink = (linkId: string) => setLinkedProducts(prev => prev.filter(l => l.id !== linkId));
@@ -68,11 +98,17 @@ export const BlogForm: React.FC = () => {
     }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (!title.trim() || !description.trim()) {
       alert('Please fill out the article title and description.');
+      return;
+    }
+
+    const trimmedImage = imageUrl.trim();
+    if (trimmedImage && !trimmedImage.startsWith('http')) {
+      alert('The cover image must be a full URL starting with http(s)://');
       return;
     }
 
@@ -91,22 +127,39 @@ export const BlogForm: React.FC = () => {
       url: url.trim(),
       status,
       description: description.trim(),
-      imageUrl: imageUrl.trim() || 'https://images.unsplash.com/photo-1486312338219-ce68d2c6f44d?w=500',
+      imageUrl: trimmedImage,
       author: 'Admin',
-      publishDate: isEditMode ? undefined : new Date().toISOString().split('T')[0],
       linkedProducts: cleanedLinks
     };
-    console.log('Blog post payload:', payload);
 
-    // Backend simulation save / update
-    if (isEditMode) {
-      alert('Article updated!');
-    } else {
-      alert('Article entry logged successfully!');
+    try {
+      setSaving(true);
+      if (isEditMode && numericId != null) {
+        await updateBlog(numericId, payload);
+        alert('Article updated!');
+      } else {
+        await createBlog(payload);
+        alert('Article published successfully!');
+      }
+      navigate('/admin/blogs');
+    } catch (err: any) {
+      console.error(err);
+      const msg = err?.response?.data?.message || 'Something went wrong while saving the article.';
+      alert(msg);
+    } finally {
+      setSaving(false);
     }
-
-    navigate('/admin/blogs');
   };
+
+  if (loading) {
+    return (
+      <div style={{ maxWidth: '760px', margin: '0 auto', padding: '2rem', color: '#64748b' }}>
+        Loading article…
+      </div>
+    );
+  }
+
+  const trimmedImage = imageUrl.trim();
 
   return (
     <div style={{ maxWidth: '760px', backgroundColor: '#fff', padding: '2rem', borderRadius: '0.5rem', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', margin: '0 auto' }}>
@@ -129,7 +182,7 @@ export const BlogForm: React.FC = () => {
           </div>
           <div style={{ width: '180px' }}>
             <label style={{ display: 'block', fontWeight: '600', marginBottom: '0.375rem', color: '#4b5563' }}>Status</label>
-            <select value={status} onChange={(e) => setStatus(e.target.value as BlogPost['status'])} style={{ ...inputStyle, backgroundColor: '#fff', cursor: 'pointer' }}>
+            <select value={status} onChange={(e) => setStatus(e.target.value as BlogStatus)} style={{ ...inputStyle, backgroundColor: '#fff', cursor: 'pointer' }}>
               <option value="Draft">📝 Draft</option>
               <option value="Published">🚀 Published</option>
             </select>
@@ -139,7 +192,43 @@ export const BlogForm: React.FC = () => {
         {/* Cover image */}
         <div>
           <label style={{ display: 'block', fontWeight: '600', marginBottom: '0.375rem', color: '#4b5563' }}>Cover Image URL</label>
-          <input type="text" value={imageUrl} onChange={(e) => setImageUrl(e.target.value)} placeholder="Paste image address (https://...)" style={inputStyle} />
+          <input
+            type="text"
+            value={imageUrl}
+            onChange={(e) => setImageUrl(e.target.value)}
+            placeholder="Paste image address (https://...)"
+            style={inputStyle}
+          />
+
+          {/* Live preview — this is what was missing before, so a pasted URL now shows immediately */}
+          {trimmedImage !== '' && (
+            <div style={{ marginTop: '0.75rem' }}>
+              <div style={{
+                width: '100%', maxWidth: '360px', aspectRatio: '16 / 9', borderRadius: '0.5rem',
+                border: '1px solid #e2e8f0', overflow: 'hidden', backgroundColor: '#f1f5f9',
+                display: 'flex', alignItems: 'center', justifyContent: 'center'
+              }}>
+                <img
+                  src={trimmedImage}
+                  alt="Cover preview"
+                  onLoad={() => setImgStatus('ok')}
+                  onError={() => setImgStatus('error')}
+                  style={{
+                    width: '100%', height: '100%', objectFit: 'cover',
+                    display: imgStatus === 'error' ? 'none' : 'block'
+                  }}
+                />
+                {imgStatus === 'error' && (
+                  <span style={{ fontSize: '0.85rem', color: '#ef4444', padding: '0 1rem', textAlign: 'center' }}>
+                    ⚠️ Couldn't load this image. Check that it's a direct image link ending in .jpg/.png/.webp and that the site allows hotlinking.
+                  </span>
+                )}
+              </div>
+              {imgStatus === 'ok' && (
+                <div style={{ fontSize: '0.8rem', color: '#16a34a', marginTop: '0.375rem' }}>✓ Image loaded</div>
+              )}
+            </div>
+          )}
         </div>
 
         {/* Description */}
@@ -209,11 +298,11 @@ export const BlogForm: React.FC = () => {
 
         {/* Footer buttons */}
         <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end', marginTop: '0.5rem', borderTop: '1px solid #e2e8f0', paddingTop: '1.25rem' }}>
-          <button type="button" onClick={() => navigate('/admin/blogs')} style={{ padding: '0.625rem 1.25rem', backgroundColor: '#f1f5f9', color: '#334155', border: 'none', borderRadius: '0.375rem', cursor: 'pointer', fontWeight: '600' }}>
+          <button type="button" disabled={saving} onClick={() => navigate('/admin/blogs')} style={{ padding: '0.625rem 1.25rem', backgroundColor: '#f1f5f9', color: '#334155', border: 'none', borderRadius: '0.375rem', cursor: 'pointer', fontWeight: '600', opacity: saving ? 0.6 : 1 }}>
             Cancel
           </button>
-          <button type="submit" style={{ padding: '0.625rem 1.25rem', backgroundColor: '#3b82f6', color: '#fff', border: 'none', borderRadius: '0.375rem', cursor: 'pointer', fontWeight: '600' }}>
-            {isEditMode ? 'Save Modifications' : 'Publish Entry'}
+          <button type="submit" disabled={saving} style={{ padding: '0.625rem 1.25rem', backgroundColor: '#3b82f6', color: '#fff', border: 'none', borderRadius: '0.375rem', cursor: saving ? 'not-allowed' : 'pointer', fontWeight: '600', opacity: saving ? 0.7 : 1 }}>
+            {saving ? 'Saving…' : isEditMode ? 'Save Modifications' : 'Publish Entry'}
           </button>
         </div>
       </form>

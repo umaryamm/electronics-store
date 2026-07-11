@@ -17,8 +17,8 @@ router.get("/",    getBlogPosts);
 router.get("/:id", getBlogPostById);
 
 // Admin
-router.post("/",    auth, admin, createBlogPost);
-router.put("/:id",  auth, admin, updateBlogPost);
+router.post("/",     auth, admin, createBlogPost);
+router.put("/:id",   auth, admin, updateBlogPost);
 router.delete("/:id", auth, admin, deleteBlogPost);
 
 module.exports = router;

@@ -63,6 +63,7 @@ enum CartItemType {
   PROJECT
 }
 
+
 model CartItem {
   id        Int          @id @default(autoincrement())
   cartId    Int
@@ -143,12 +144,16 @@ model Review {
 }
 
 model BlogPost {
-  id        Int      @id @default(autoincrement())
-  title     String
-  content   String
-  imageUrl  String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id             Int      @id @default(autoincrement())
+  title          String
+  content        String
+  imageUrl       String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  status         String   @default("Draft")
+  author         String   @default("Admin")
+  slug           String?
+  linkedProducts Json     @default("[]")
 
   @@index([createdAt])
 }
@@ -173,6 +178,21 @@ model Project {
   orderItems       OrderItem[]
 
   @@index([category])
+  @@index([status])
+  @@index([createdAt])
+}
+
+model ClientQuery {
+  id          Int      @id @default(autoincrement())
+  clientName  String
+  clientEmail String
+  subject     String
+  message     String
+  status      String   @default("Unread")
+  priority    String   @default("Medium")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
   @@index([status])
   @@index([createdAt])
 }

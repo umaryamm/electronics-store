@@ -1,69 +1,44 @@
 // src/pages/BlogsManager.tsx
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { getBlogs, deleteBlog, BlogPost } from '../api/blogService';
 
-// ✨ A single "click through to a product" link attached to a blog post
-export interface LinkedProduct {
-  id: string;
-  productId?: string; // set when picked from the catalog dropdown in the form
-  label: string;
-  url: string;
-}
-
-export interface BlogPost {
-  id: string;
-  title: string;
-  url: string; // the article's own public URL / slug
-  author: string;
-  publishDate: string;
-  status: 'Published' | 'Draft';
-  description: string;
-  imageUrl: string;
-  linkedProducts: LinkedProduct[];
-}
-
-export const makeLinkId = () => `link-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
-
-// Seed data — swap for a fetch/API call later
-export const initialBlogPosts: BlogPost[] = [
-  {
-    id: 'POST-001',
-    title: 'Top 5 Tech Gadgets Revolutionizing 2026',
-    url: '/blog/top-5-tech-gadgets-2026',
-    author: 'Admin',
-    publishDate: '2026-06-15',
-    status: 'Published',
-    description:
-      'A deep dive into the latest smartphone and AI hardware ecosystem shifts hitting the consumer retail market.',
-    imageUrl: 'https://images.unsplash.com/photo-1519389950473-47ba0277781c?w=500',
-    linkedProducts: [
-      { id: makeLinkId(), productId: 'provisionx15', label: 'ProVision X15 Ultra', url: '/products/provisionx15' },
-      { id: makeLinkId(), productId: 'vgsonicarcpro', label: 'VG SonicArc ANC Pro', url: '/products/vgsonicarcpro' }
-    ]
-  },
-  {
-    id: 'POST-002',
-    title: 'Our New Fulfillment Center is Officially Live!',
-    url: '/blog/new-fulfillment-center-live',
-    author: 'Admin',
-    publishDate: '2026-06-28',
-    status: 'Draft',
-    description:
-      'Announcing our strategic logistics expansion allowing 2-day domestic courier routing for all electronics.',
-    imageUrl: '',
-    linkedProducts: []
-  }
-];
+// Re-export the shared blog types/helper from their canonical home (blogService)
+// so any file still importing them from here keeps working.
+export type { BlogPost, LinkedProduct, BlogStatus } from '../api/blogService';
+export { makeLinkId } from '../api/blogService';
 
 export const BlogsManager: React.FC = () => {
   const navigate = useNavigate();
-  const [posts, setPosts] = useState<BlogPost[]>(initialBlogPosts);
+  const [posts, setPosts] = useState<BlogPost[]>([]);
   const [viewingPost, setViewingPost] = useState<BlogPost | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
 
-  const handleDeletePost = (id: string) => {
-    if (window.confirm(`Are you sure you want to delete blog article "${id}"?`)) {
+  const loadPosts = () => {
+    setLoading(true);
+    getBlogs()
+      .then(setPosts)
+      .catch((err) => {
+        console.error(err);
+        setError('Could not load blog articles. Is the backend running?');
+      })
+      .finally(() => setLoading(false));
+  };
+
+  useEffect(() => {
+    loadPosts();
+  }, []);
+
+  const handleDeletePost = async (id: number) => {
+    if (!window.confirm(`Are you sure you want to delete blog article #${id}?`)) return;
+    try {
+      await deleteBlog(id);
       setPosts(prev => prev.filter(post => post.id !== id));
       if (viewingPost?.id === id) setViewingPost(null);
+    } catch (err) {
+      console.error(err);
+      alert('Failed to delete this article.');
     }
   };
 
@@ -82,6 +57,12 @@ export const BlogsManager: React.FC = () => {
         </button>
       </div>
 
+      {error && (
+        <div style={{ marginBottom: '1rem', padding: '0.75rem 1rem', backgroundColor: '#fef2f2', color: '#b91c1c', borderRadius: '0.375rem', fontSize: '0.9rem' }}>
+          {error}
+        </div>
+      )}
+
       {/* 📊 Count badge */}
       <div style={{
         marginBottom: '1rem',
@@ -93,7 +74,7 @@ export const BlogsManager: React.FC = () => {
         borderRadius: '0.375rem',
         display: 'inline-block'
       }}>
-        {posts.length} {posts.length === 1 ? 'article' : 'articles'}
+        {loading ? 'Loading…' : `${posts.length} ${posts.length === 1 ? 'article' : 'articles'}`}
       </div>
 
       {/* Content Table Block */}
@@ -186,7 +167,7 @@ export const BlogsManager: React.FC = () => {
           </tbody>
         </table>
 
-        {posts.length === 0 && (
+        {!loading && posts.length === 0 && (
           <div style={{ textAlign: 'center', padding: '3rem', color: '#64748b' }}>No blog articles logged yet.</div>
         )}
       </div>
@@ -206,7 +187,7 @@ export const BlogsManager: React.FC = () => {
             <div style={{ padding: '2rem' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.75rem' }}>
                 <div>
-                  <div style={{ fontFamily: 'monospace', color: '#64748b', fontSize: '0.85rem', marginBottom: '0.25rem' }}>{viewingPost.id}</div>
+                  <div style={{ fontFamily: 'monospace', color: '#64748b', fontSize: '0.85rem', marginBottom: '0.25rem' }}>#{viewingPost.id}</div>
                   <h2 style={{ margin: 0, fontSize: '1.4rem', color: '#0f172a' }}>{viewingPost.title}</h2>
                 </div>
                 {!viewingPost.imageUrl && (
