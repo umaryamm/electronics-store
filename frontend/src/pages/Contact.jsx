@@ -1,11 +1,31 @@
 import { useState } from 'react';
+import { submitQuery } from '../api/queryService';
+
+const EMPTY_FORM = { clientName: '', clientEmail: '', subject: '', message: '' };
 
 export default function Contact() {
-  const [status, setStatus] = useState(null);
+  const [form, setForm] = useState(EMPTY_FORM);
+  const [status, setStatus] = useState(null); // null | 'sending' | 'success' | 'error'
+  const [errorMsg, setErrorMsg] = useState('');
 
-  const handleSubmit = (e) => {
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setForm(prev => ({ ...prev, [name]: value }));
+  };
+
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    setStatus('success');
+    setStatus('sending');
+    setErrorMsg('');
+
+    try {
+      await submitQuery(form);
+      setStatus('success');
+      setForm(EMPTY_FORM);
+    } catch (err) {
+      setStatus('error');
+      setErrorMsg(err.response?.data?.message || 'Something went wrong. Please try again.');
+    }
   };
 
   return (
@@ -36,19 +56,41 @@ export default function Contact() {
           <p style={{ fontSize: '0.85rem', color: 'var(--text-sub)', marginBottom: '20px' }}>
             Fill out the form below and we'll get back to you shortly.
           </p>
+
           {status === 'success' && (
             <div style={{ background: 'rgba(34,197,94,0.1)', color: '#22c55e', border: '1px solid rgba(34,197,94,0.3)', padding: '12px 16px', borderRadius: '10px', marginBottom: '16px', fontSize: '0.85rem' }}>
               Thanks! Your message has been sent — we'll reply soon.
             </div>
           )}
+
+          {status === 'error' && (
+            <div style={{ background: 'rgba(239,68,68,0.1)', color: '#ef4444', border: '1px solid rgba(239,68,68,0.3)', padding: '12px 16px', borderRadius: '10px', marginBottom: '16px', fontSize: '0.85rem' }}>
+              {errorMsg}
+            </div>
+          )}
+
           <form onSubmit={handleSubmit}>
             <div className="form-grid">
-              <div className="field"><label>Name</label><input required placeholder="Your name" /></div>
-              <div className="field"><label>Email</label><input type="email" required placeholder="you@example.com" /></div>
+              <div className="field">
+                <label>Name</label>
+                <input name="clientName" required placeholder="Your name" value={form.clientName} onChange={handleChange} />
+              </div>
+              <div className="field">
+                <label>Email</label>
+                <input name="clientEmail" type="email" required placeholder="you@example.com" value={form.clientEmail} onChange={handleChange} />
+              </div>
             </div>
-            <div className="field"><label>Subject</label><input required placeholder="How can we help?" /></div>
-            <div className="field"><label>Message</label><textarea required rows={5} placeholder="Tell us more..." /></div>
-            <button className="btn-primary" type="submit">Send Message</button>
+            <div className="field">
+              <label>Subject</label>
+              <input name="subject" required placeholder="How can we help?" value={form.subject} onChange={handleChange} />
+            </div>
+            <div className="field">
+              <label>Message</label>
+              <textarea name="message" required rows={5} placeholder="Tell us more..." value={form.message} onChange={handleChange} />
+            </div>
+            <button className="btn-primary" type="submit" disabled={status === 'sending'}>
+              {status === 'sending' ? 'Sending...' : 'Send Message'}
+            </button>
           </form>
         </div>
       </div>
