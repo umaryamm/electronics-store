@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { loadProjects } from '../data/catalog';
 import { getProducts, normalizeProduct } from '../api/productService';
 import { getCategories } from '../api/categoryService';
-import { getProjects } from '../api/projectService';
 import ProductCard from '../components/ProductCard';
 import ProjectCard from '../components/ProjectCard';
 import BorderGlow from '../components/BorderGlow';
@@ -18,12 +18,12 @@ const FEATURES = [
 ];
 
 const DUMMY_PROJECTS = [
-  { id: 'dummy-1', badge: 'POPULAR', category: 'Drone Projects', title: 'FPV Racing Drone Build Kit', rating: 4.7, reviews: 89, difficulty: 'Advanced', duration: '5–6 Weeks', description: 'Placeholder project — real data coming soon.' },
-  { id: 'dummy-2', badge: 'POPULAR', category: 'IoT Projects', title: 'ESP32 Weather Station', rating: 4.5, reviews: 134, difficulty: 'Beginner', duration: '1–2 Weeks', description: 'Placeholder project — real data coming soon.' },
-  { id: 'dummy-3', badge: 'POPULAR', category: 'Power Electronics', title: 'Solar MPPT Charge Controller', rating: 4.6, reviews: 58, difficulty: 'Intermediate', duration: '3–4 Weeks', description: 'Placeholder project — real data coming soon.' },
-  { id: 'dummy-4', badge: 'POPULAR', category: 'Robotics Projects', title: 'Line-Following Robot Car', rating: 4.4, reviews: 210, difficulty: 'Beginner', duration: '1 Week', description: 'Placeholder project — real data coming soon.' },
-  { id: 'dummy-5', badge: 'POPULAR', category: 'Security Systems', title: 'RFID Door Lock System', rating: 4.8, reviews: 96, difficulty: 'Intermediate', duration: '2–3 Weeks', description: 'Placeholder project — real data coming soon.' },
-  { id: 'dummy-6', badge: 'POPULAR', category: 'Smart Home Projects', title: 'Automatic Plant Watering System', rating: 4.5, reviews: 77, difficulty: 'Beginner', duration: '1–2 Weeks', description: 'Placeholder project — real data coming soon.' },
+  { id: 'dummy-1', emoji: '🚁', badge: 'POPULAR', category: 'Drone Projects', name: 'FPV Racing Drone Build Kit', rating: 4.7, reviews: 89, difficulty: 'Advanced', duration: '5–6 Weeks', description: 'Placeholder project — real data coming soon.' },
+  { id: 'dummy-2', emoji: '🌡️', badge: 'POPULAR', category: 'IoT Projects', name: 'ESP32 Weather Station', rating: 4.5, reviews: 134, difficulty: 'Beginner', duration: '1–2 Weeks', description: 'Placeholder project — real data coming soon.' },
+  { id: 'dummy-3', emoji: '🔋', badge: 'POPULAR', category: 'Power Electronics', name: 'Solar MPPT Charge Controller', rating: 4.6, reviews: 58, difficulty: 'Intermediate', duration: '3–4 Weeks', description: 'Placeholder project — real data coming soon.' },
+  { id: 'dummy-4', emoji: '🚗', badge: 'POPULAR', category: 'Robotics Projects', name: 'Line-Following Robot Car', rating: 4.4, reviews: 210, difficulty: 'Beginner', duration: '1 Week', description: 'Placeholder project — real data coming soon.' },
+  { id: 'dummy-5', emoji: '🔐', badge: 'POPULAR', category: 'Security Systems', name: 'RFID Door Lock System', rating: 4.8, reviews: 96, difficulty: 'Intermediate', duration: '2–3 Weeks', description: 'Placeholder project — real data coming soon.' },
+  { id: 'dummy-6', emoji: '💧', badge: 'POPULAR', category: 'Smart Home Projects', name: 'Automatic Plant Watering System', rating: 4.5, reviews: 77, difficulty: 'Beginner', duration: '1–2 Weeks', description: 'Placeholder project — real data coming soon.' },
 ];
 
 const DUMMY_LASERS = [
@@ -95,16 +95,10 @@ export default function Home() {
       })
       .catch((err) => console.error('Failed to load products/categories:', err));
 
-    // Live projects (same source Projects.jsx/ProjectDetail.jsx already use):
-    // pull everything and keep whatever admin has flagged isFeatured, instead
-    // of the static projects.json snapshot that never reflected new projects.
-    getProjects({ limit: 100 })
-      .then((data) => {
-        const projects = data.projects || [];
-        const featured = projects.filter((p) => p.isFeatured);
-        setFeaturedProjects((featured.length > 0 ? featured : DUMMY_PROJECTS).slice(0, 10));
-      })
-      .catch((err) => console.error('Failed to load featured projects:', err));
+    loadProjects().then(({ projects }) => {
+      const popular = projects.filter((p) => p.badge === 'POPULAR');
+      setFeaturedProjects([...popular, ...DUMMY_PROJECTS].slice(0, 10));
+    });
     setNewArrivals(MOCK_NEW_ARRIVALS);
   }, []);
 
@@ -305,15 +299,14 @@ export default function Home() {
               {categories.map((cat) => (
                 <div key={cat.id} className="cat-card" onClick={() => navigate(`/products?category=${cat.id}`)}>
                   <div className="cat-image-wrap">
-                    {cat.image ? (
-                      <img src={cat.image} alt={cat.name} className="cat-image" />
+                    {cat.imageUrl ? (
+                      <img src={cat.imageUrl} alt={cat.name} className="cat-image" />
                     ) : (
-                      <div className="cat-emoji">{cat.emoji}</div>
+                      <div className="cat-emoji">📦</div>
                     )}
                   </div>
                   <div style={{ padding: '12px 4px 4px' }}>
                     <div className="cat-name">{cat.name}</div>
-                    <div className="cat-count">{cat.count || ''}</div>
                   </div>
                 </div>
               ))}
