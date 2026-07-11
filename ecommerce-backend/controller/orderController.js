@@ -153,6 +153,23 @@ exports.getMyOrders = async (req, res) => {
     }
 };
 
+// Admin only — list every order, with customer info included
+exports.getAllOrders = async (req, res) => {
+    try {
+        const orders = await prisma.order.findMany({
+            include: {
+                items: true,
+                user: { select: { id: true, name: true, email: true } }
+            },
+            orderBy: { createdAt: "desc" }
+        });
+        res.json(orders);
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: "Server Error" });
+    }
+};
+
 exports.getOrderById = async (req, res) => {
     try {
         const userId = req.user.userId;

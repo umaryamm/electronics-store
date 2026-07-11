@@ -7,12 +7,14 @@ const {
     getMyOrders,
     getOrderById,
     getShippingOptions,
-    updateOrderStatus
+    updateOrderStatus,
+    getAllOrders
 } = require("../controller/orderController");
 
-router.get("/shipping-options", getShippingOptions); // public — just pricing info, no sensitive data
+router.get("/shipping-options", getShippingOptions);
 router.post("/", auth, checkout);
 router.get("/", auth, getMyOrders);
+router.get("/admin/all", auth, admin, getAllOrders);
 router.get("/:id", auth, getOrderById);
 router.put("/:id/status", auth, admin, updateOrderStatus);
 
