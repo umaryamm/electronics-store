@@ -24,6 +24,7 @@ model User {
 model Category {
   id       Int       @id @default(autoincrement())
   name     String    @unique
+  imageUrl String?
   products Product[]
 }
 
@@ -58,22 +59,16 @@ model Cart {
   items     CartItem[]
 }
 
-enum CartItemType {
-  PRODUCT
-  PROJECT
-}
-
-
 model CartItem {
   id        Int          @id @default(autoincrement())
   cartId    Int
-  itemType  CartItemType @default(PRODUCT)
   productId Int?
-  projectId Int?
   quantity  Int          @default(1)
+  itemType  CartItemType @default(PRODUCT)
+  projectId Int?
   cart      Cart         @relation(fields: [cartId], references: [id], onDelete: Cascade)
   product   Product?     @relation(fields: [productId], references: [id])
-  project   Project?     @relation(fields: [projectId], references: [id])
+  Project   Project?     @relation(fields: [projectId], references: [id])
 
   @@unique([cartId, productId, itemType])
   @@unique([cartId, projectId, itemType])
@@ -106,15 +101,15 @@ model Order {
 model OrderItem {
   id           Int          @id @default(autoincrement())
   orderId      Int
-  itemType     CartItemType @default(PRODUCT)
   productId    Int?
-  projectId    Int?
-  itemName     String
   quantity     Int
   priceAtOrder Float
+  itemName     String
+  itemType     CartItemType @default(PRODUCT)
+  projectId    Int?
   order        Order        @relation(fields: [orderId], references: [id], onDelete: Cascade)
   product      Product?     @relation(fields: [productId], references: [id])
-  project      Project?     @relation(fields: [projectId], references: [id])
+  Project      Project?     @relation(fields: [projectId], references: [id])
 }
 
 model Address {
@@ -174,8 +169,8 @@ model Project {
   sections         Json        @default("[]")
   status           String      @default("In Progress")
   title            String
-  cartItems        CartItem[]
-  orderItems       OrderItem[]
+  CartItem         CartItem[]
+  OrderItem        OrderItem[]
 
   @@index([category])
   @@index([status])
@@ -200,4 +195,9 @@ model ClientQuery {
 enum Role {
   USER
   ADMIN
+}
+
+enum CartItemType {
+  PRODUCT
+  PROJECT
 }

@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { loadProducts, loadProjects } from '../data/catalog';
+import { loadProjects } from '../data/catalog';
+import { getProducts, normalizeProduct } from '../api/productService';
+import { getCategories } from '../api/categoryService';
 import ProductCard from '../components/ProductCard';
 import ProjectCard from '../components/ProjectCard';
 import BorderGlow from '../components/BorderGlow';
@@ -68,12 +70,31 @@ export default function Home() {
   const laserCarouselRef = useRef(null);
 
   useEffect(() => {
-    loadProducts().then(({ categories, products }) => {
-      setCategories(categories);
-      setFeaturedProducts(products.slice(0, 8));
-      const lasers = products.filter((p) => (p.category || '').toLowerCase().includes('laser'));
-      setLaserProducts((lasers.length > 0 ? lasers : DUMMY_LASERS).slice(0, 10));
-    });
+    // Pull a broad batch of live products (newest-first, the backend's
+    // default sort) so both "Featured" and "Laser Modules" reflect whatever
+    // is actually in the database — including anything admin just added —
+    // instead of the frozen public/products.json snapshot.
+    Promise.all([getProducts({ limit: 200 }), getCategories()])
+      .then(([productData, cats]) => {
+        const products = (productData.products || []).map(normalizeProduct);
+        setFeaturedProducts(products.slice(0, 8));
+
+        const lasers = products.filter((p) => (p.category || '').toLowerCase().includes('laser'));
+        setLaserProducts((lasers.length > 0 ? lasers : DUMMY_LASERS).slice(0, 10));
+
+        // The category endpoint only returns { id, name } — derive product
+        // counts client-side from the same batch so the carousel still shows
+        // "N products" per category.
+        setCategories(
+          cats.map((c) => ({
+            ...c,
+            emoji: c.emoji || '📦',
+            count: products.filter((p) => p.categoryId === c.id).length,
+          }))
+        );
+      })
+      .catch((err) => console.error('Failed to load products/categories:', err));
+
     loadProjects().then(({ projects }) => {
       const popular = projects.filter((p) => p.badge === 'POPULAR');
       setFeaturedProjects([...popular, ...DUMMY_PROJECTS].slice(0, 10));
@@ -278,15 +299,14 @@ export default function Home() {
               {categories.map((cat) => (
                 <div key={cat.id} className="cat-card" onClick={() => navigate(`/products?category=${cat.id}`)}>
                   <div className="cat-image-wrap">
-                    {cat.image ? (
-                      <img src={cat.image} alt={cat.name} className="cat-image" />
+                    {cat.imageUrl ? (
+                      <img src={cat.imageUrl} alt={cat.name} className="cat-image" />
                     ) : (
-                      <div className="cat-emoji">{cat.emoji}</div>
+                      <div className="cat-emoji">📦</div>
                     )}
                   </div>
                   <div style={{ padding: '12px 4px 4px' }}>
                     <div className="cat-name">{cat.name}</div>
-                    <div className="cat-count">{cat.count || ''}</div>
                   </div>
                 </div>
               ))}

@@ -3,7 +3,7 @@ const prisma = require("../prisma/client");
 // Create Category
 exports.createCategory = async (req, res) => {
     try {
-        const { name } = req.body;
+        const { name, imageUrl } = req.body;
 
         if (!name || !name.trim()) {
             return res.status(400).json({
@@ -25,7 +25,8 @@ exports.createCategory = async (req, res) => {
 
         const category = await prisma.category.create({
             data: {
-                name: name.trim()
+                name: name.trim(),
+                imageUrl: imageUrl ? imageUrl.trim() : null
             }
         });
 
@@ -98,7 +99,7 @@ exports.updateCategory = async (req, res) => {
     try {
 
         const id = parseInt(req.params.id);
-        const { name } = req.body;
+        const { name, imageUrl } = req.body;
 
         if (!name || !name.trim()) {
             return res.status(400).json({
@@ -138,7 +139,8 @@ exports.updateCategory = async (req, res) => {
                 id
             },
             data: {
-                name: name.trim()
+                name: name.trim(),
+                imageUrl: imageUrl !== undefined ? (imageUrl ? imageUrl.trim() : null) : category.imageUrl
             }
         });
 

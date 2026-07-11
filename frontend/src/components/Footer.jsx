@@ -1,12 +1,14 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { loadProducts } from '../data/catalog';
+import { getCategories } from '../api/categoryService';
 
 export default function Footer() {
   const [categories, setCategories] = useState([]);
 
   useEffect(() => {
-    loadProducts().then(({ categories }) => setCategories(categories.slice(0, 6)));
+    getCategories()
+      .then((cats) => setCategories(cats.slice(0, 6)))
+      .catch((err) => console.error('Failed to load categories:', err));
   }, []);
 
   return (

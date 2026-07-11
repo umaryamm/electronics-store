@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { loadProducts, filterProducts, formatPrice } from '../data/catalog';
+import { formatPrice } from '../data/catalog';
+import { getProducts, normalizeProduct } from '../api/productService';
 
 export default function SearchBar() {
   const [query, setQuery] = useState('');
@@ -9,6 +10,8 @@ export default function SearchBar() {
   const [activeIndex, setActiveIndex] = useState(-1);
   const barRef = useRef(null);
   const navigate = useNavigate();
+  const debounceRef = useRef(null);
+  const requestIdRef = useRef(0);
 
   useEffect(() => {
     function onDocClick(e) {
@@ -18,16 +21,34 @@ export default function SearchBar() {
     return () => document.removeEventListener('click', onDocClick);
   }, []);
 
-  const runFilter = async (value) => {
+  // Queries the live /api/products endpoint (server-side "contains" match on
+  // name) so newly added admin products show up immediately, instead of
+  // filtering against the static products.json snapshot. Debounced slightly
+  // since this now hits the database on every keystroke rather than an
+  // in-memory array.
+  const runFilter = (value) => {
     const q = value.trim();
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+
     if (!q) {
       setOpen(false);
+      setMatches([]);
       return;
     }
-    const { products } = await loadProducts();
-    setMatches(filterProducts(products, q));
-    setActiveIndex(-1);
-    setOpen(true);
+
+    const thisRequest = ++requestIdRef.current;
+    debounceRef.current = setTimeout(async () => {
+      try {
+        const data = await getProducts({ search: q, limit: 8 });
+        if (thisRequest !== requestIdRef.current) return; // stale response, newer keystroke won
+        setMatches((data.products || []).map(normalizeProduct));
+      } catch (err) {
+        console.error('Search failed:', err);
+        if (thisRequest === requestIdRef.current) setMatches([]);
+      }
+      setActiveIndex(-1);
+      setOpen(true);
+    }, 250);
   };
 
   const goToProduct = (id) => {
@@ -79,7 +100,17 @@ export default function SearchBar() {
               className={`search-result-item${i === activeIndex ? ' active' : ''}`}
               onClick={() => goToProduct(p.id)}
             >
-              <div className="search-result-icon">{p.emoji || p.image || '📦'}</div>
+              <div className="search-result-icon">
+                {p.imageUrl ? (
+                  <img
+                    src={p.imageUrl}
+                    alt={p.name}
+                    style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '9px' }}
+                  />
+                ) : (
+                  p.emoji || p.image || '📦'
+                )}
+              </div>
               <div className="search-result-info">
                 <div className="search-result-name">{p.name}</div>
                 <div className="search-result-meta">{p.category || ''}</div>
