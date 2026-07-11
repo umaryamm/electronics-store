@@ -14,6 +14,7 @@ const reviewRoutes = require("./routes/reviews");
 const blogRoutes = require("./routes/blog");
 const projectRoutes = require('./routes/projects');
 const queryRoutes = require('./routes/queries');
+const statsRoutes = require('./routes/stats');
 
 const app = express();
 
@@ -53,6 +54,7 @@ app.use("/api", reviewRoutes);
 app.use("/api/blog", blogRoutes);
 app.use('/api/projects', projectRoutes);
 app.use('/api/queries', queryRoutes);
+app.use('/api/stats', statsRoutes);
 
 // ---------------------------------------------------------------------
 // Serve the built React apps so both the storefront and the admin panel
