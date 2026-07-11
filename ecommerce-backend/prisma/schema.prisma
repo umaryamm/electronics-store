@@ -59,12 +59,19 @@ model Cart {
 }
 
 model CartItem {
-  id        Int     @id @default(autoincrement())
+  id        Int          @id @default(autoincrement())
   cartId    Int
-  productId Int
-  quantity  Int
-  cart      Cart    @relation(fields: [cartId], references: [id], onDelete: Cascade)
-  product   Product @relation(fields: [productId], references: [id])
+  productId Int?
+  quantity  Int          @default(1)
+  itemType  CartItemType @default(PRODUCT)
+  projectId Int?
+  cart      Cart         @relation(fields: [cartId], references: [id], onDelete: Cascade)
+  product   Product?     @relation(fields: [productId], references: [id])
+  Project   Project?     @relation(fields: [projectId], references: [id])
+
+  @@unique([cartId, productId, itemType])
+  @@unique([cartId, projectId, itemType])
+  @@index([cartId])
 }
 
 model Order {
@@ -91,14 +98,17 @@ model Order {
 }
 
 model OrderItem {
-  id           Int     @id @default(autoincrement())
+  id           Int          @id @default(autoincrement())
   orderId      Int
-  productId    Int
-  productName  String
+  productId    Int?
   quantity     Int
   priceAtOrder Float
-  order        Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  product      Product @relation(fields: [productId], references: [id])
+  itemName     String
+  itemType     CartItemType @default(PRODUCT)
+  projectId    Int?
+  order        Order        @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product      Product?     @relation(fields: [productId], references: [id])
+  Project      Project?     @relation(fields: [projectId], references: [id])
 }
 
 model Address {
@@ -128,32 +138,38 @@ model Review {
 }
 
 model BlogPost {
-  id        Int      @id @default(autoincrement())
-  title     String
-  content   String
-  imageUrl  String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id             Int      @id @default(autoincrement())
+  title          String
+  content        String
+  imageUrl       String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  status         String   @default("Draft")
+  author         String   @default("Admin")
+  slug           String?
+  linkedProducts Json     @default("[]")
 
   @@index([createdAt])
 }
 
 model Project {
-  id               Int       @id @default(autoincrement())
+  id               Int         @id @default(autoincrement())
   category         String
   imageUrl         String?
-  createdAt        DateTime  @default(now())
-  updatedAt        DateTime  @updatedAt
+  createdAt        DateTime    @default(now())
+  updatedAt        DateTime    @updatedAt
   completionDate   DateTime?
   githubUrl        String?
   introDescription String?
   introImageUrl    String?
-  isFeatured       Boolean   @default(false)
-  isNewArrival     Boolean   @default(false)
-  price            Float     @default(0)
-  sections         Json      @default("[]")
-  status           String    @default("In Progress")
+  isFeatured       Boolean     @default(false)
+  isNewArrival     Boolean     @default(false)
+  price            Float       @default(0)
+  sections         Json        @default("[]")
+  status           String      @default("In Progress")
   title            String
+  CartItem         CartItem[]
+  OrderItem        OrderItem[]
 
   @@index([category])
   @@index([status])
@@ -163,4 +179,9 @@ model Project {
 enum Role {
   USER
   ADMIN
+}
+
+enum CartItemType {
+  PRODUCT
+  PROJECT
 }
