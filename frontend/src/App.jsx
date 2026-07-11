@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import Layout from './components/Layout';
 import Home from './pages/Home';
 import Products from './pages/Products';
@@ -11,12 +11,17 @@ import Blog from './pages/Blog';
 import BlogPost from './pages/BlogPost';
 import Contact from './pages/Contact';
 import Policies from './pages/Policies';
-import Login from './pages/Login';
-import Signup from './pages/Signup';
 import { ThemeProvider } from './context/ThemeContext';
 import { CartProvider } from './context/CartContext';
 import { QuickViewProvider } from './context/QuickViewContext';
 import { AuthProvider } from './context/AuthContext';
+import LoginRegister from './pages/LoginRegister';
+import AccountLayout from './pages/AccountLayout';
+import Dashboard from './pages/Dashboard';
+import Addresses from './pages/Addresses';
+import AccountDetails from './pages/AccountDetails';
+import Orders from './pages/Orders';
+import OrderDetail from './pages/OrderDetail';
 
 export default function App() {
   return (
@@ -38,8 +43,17 @@ export default function App() {
                   <Route path="/blog/:id" element={<BlogPost />} />
                   <Route path="/contact" element={<Contact />} />
                   <Route path="/policies" element={<Policies />} />
-                  <Route path="/login" element={<Login />} />
-                  <Route path="/signup" element={<Signup />} />
+                  <Route path="/login" element={<LoginRegister />} />
+                  <Route path="/signup" element={<Navigate to="/login" replace />} />
+
+                  <Route path="/account" element={<AccountLayout />}>
+                    <Route index element={<Dashboard />} />
+                    <Route path="orders" element={<Orders />} />
+                    <Route path="addresses" element={<Addresses />} />
+                    <Route path="details" element={<AccountDetails />} />
+                  </Route>
+
+                  <Route path="/orders/:id" element={<OrderDetail />} />
                   <Route path="*" element={<Home />} />
                 </Route>
               </Routes>

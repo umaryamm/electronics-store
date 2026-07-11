@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useTheme } from '../context/ThemeContext';
 import { useCart } from '../context/CartContext';
@@ -9,10 +9,12 @@ import SearchBar from './SearchBar';
 export default function Header() {
   const { theme, toggleTheme } = useTheme();
   const { cartCount } = useCart();
-  const { isAuthenticated, logout } = useAuth();
+  const { isAuthenticated, user, logout } = useAuth();
   const [categories, setCategories] = useState([]);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [profileOpen, setProfileOpen] = useState(false);
   const navigate = useNavigate();
+  const profileRef = useRef(null);
 
   useEffect(() => {
     getCategories()
@@ -20,13 +22,21 @@ export default function Header() {
       .catch((err) => console.error('Failed to load categories:', err));
   }, []);
 
-  const handleProfileClick = () => {
-    if (isAuthenticated) {
-      logout();
-      navigate('/');
-    } else {
-      navigate('/login');
-    }
+  // Close the profile dropdown when clicking anywhere outside it
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (profileRef.current && !profileRef.current.contains(e.target)) {
+        setProfileOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const handleLogout = () => {
+    logout();
+    setProfileOpen(false);
+    navigate('/');
   };
 
   return (
@@ -121,14 +131,67 @@ export default function Header() {
             )}
           </button>
 
-          {/* Profile icon — logged out: goes to /login. Logged in: logs out.
-              Swap this for a dropdown ("My Orders" / "Logout") once an account page exists. */}
-          <button className="icon-btn" onClick={handleProfileClick} title={isAuthenticated ? 'Log out' : 'Log in'}>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
-              <circle cx="12" cy="7" r="4" />
-            </svg>
-          </button>
+          {/* Profile: logged out -> link straight to /login.
+              Logged in -> click toggles a dropdown (Dashboard / My Orders / Account details / Addresses / Logout) */}
+          {isAuthenticated ? (
+            <div ref={profileRef} style={{ position: 'relative' }}>
+              <button className="icon-btn" onClick={() => setProfileOpen((v) => !v)} title={user?.name || 'Account'}>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+                  <circle cx="12" cy="7" r="4" />
+                </svg>
+              </button>
+
+              {profileOpen && (
+                <div
+                  style={{
+                    position: 'absolute', top: 'calc(100% + 10px)', right: 0,
+                    background: 'var(--bg2, #fff)', border: '1px solid var(--border, #e2e8f0)',
+                    borderRadius: '10px', boxShadow: '0 10px 30px rgba(0,0,0,0.12)',
+                    minWidth: '200px', padding: '8px', zIndex: 200,
+                  }}
+                >
+                  {user?.name && (
+                    <div style={{ padding: '8px 12px', fontSize: '0.8rem', color: 'var(--text-sub, #64748b)', borderBottom: '1px solid var(--border, #e2e8f0)', marginBottom: '4px' }}>
+                      Signed in as <strong>{user.name}</strong>
+                    </div>
+                  )}
+                  {[
+                    ['/account', 'Dashboard'],
+                    ['/orders', 'My Orders'],
+                    ['/account', 'Account details'],
+                    ['/addresses', 'Addresses'],
+                  ].map(([to, label]) => (
+                    <Link
+                      key={label}
+                      to={to}
+                      onClick={() => setProfileOpen(false)}
+                      style={{ display: 'block', padding: '9px 12px', borderRadius: '6px', color: 'var(--text, #0f172a)', textDecoration: 'none', fontSize: '0.9rem' }}
+                    >
+                      {label}
+                    </Link>
+                  ))}
+                  <button
+                    onClick={handleLogout}
+                    style={{
+                      display: 'block', width: '100%', textAlign: 'left', padding: '9px 12px',
+                      borderRadius: '6px', color: '#c0392b', background: 'none', border: 'none',
+                      cursor: 'pointer', fontSize: '0.9rem', marginTop: '4px', borderTop: '1px solid var(--border, #e2e8f0)', paddingTop: '10px'
+                    }}
+                  >
+                    Logout
+                  </button>
+                </div>
+              )}
+            </div>
+          ) : (
+            <Link to="/login" className="icon-btn" title="Log in">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+                <circle cx="12" cy="7" r="4" />
+              </svg>
+            </Link>
+          )}
 
           <Link to="/cart" className="icon-btn">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">

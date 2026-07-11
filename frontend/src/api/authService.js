@@ -34,3 +34,12 @@ export const getStoredUser = () => {
 };
 
 export const getStoredToken = () => localStorage.getItem("token");
+export const getMe = async () => {
+  const res = await api.get("/api/auth/me");
+  return res.data;
+};
+
+export const updateMe = async (data) => {
+  const res = await api.put("/api/auth/me", data);
+  return res.data;
+};
