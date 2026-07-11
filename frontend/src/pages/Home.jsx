@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { loadProjects } from '../data/catalog';
 import { getProducts, normalizeProduct } from '../api/productService';
 import { getCategories } from '../api/categoryService';
+import { getProjects } from '../api/projectService';
 import ProductCard from '../components/ProductCard';
 import ProjectCard from '../components/ProjectCard';
 import BorderGlow from '../components/BorderGlow';
@@ -44,14 +44,6 @@ const MARQUEE = [
   '0% Instalment Plans Available',
 ];
 
-const MOCK_NEW_ARRIVALS = [
-  { id: 'na-1', type: 'product', name: 'ESP32-CAM WiFi Module', price: 2200, image: '', badge: 'NEW' },
-  { id: 'na-2', type: 'product', name: 'NEMA 17 Stepper Motor', price: 1450, image: '', badge: 'NEW' },
-  { id: 'na-3', type: 'project', name: 'Line-Following Robot Kit', price: 6800, image: '', badge: 'NEW' },
-  { id: 'na-4', type: 'product', name: '4K Mini Projector Module', price: 15500, image: '', badge: 'NEW' },
-  { id: 'na-5', type: 'project', name: 'Smart Home Automation Hub', price: 9200, image: '', badge: 'NEW' },
-];
-
 export default function Home() {
   const [categories, setCategories] = useState([]);
   const [featuredProducts, setFeaturedProducts] = useState([]);
@@ -70,21 +62,31 @@ export default function Home() {
   const laserCarouselRef = useRef(null);
 
   useEffect(() => {
-    // Pull a broad batch of live products (newest-first, the backend's
-    // default sort) so both "Featured" and "Laser Modules" reflect whatever
-    // is actually in the database — including anything admin just added —
-    // instead of the frozen public/products.json snapshot.
-    Promise.all([getProducts({ limit: 200 }), getCategories()])
-      .then(([productData, cats]) => {
+    // Only items created within this many days count as "New Arrivals".
+    const NEW_ARRIVAL_WINDOW_DAYS = 30;
+    const windowStart = Date.now() - NEW_ARRIVAL_WINDOW_DAYS * 24 * 60 * 60 * 1000;
+
+    // Pull live products, categories, and projects together so every section
+    // reflects whatever is actually in the database — including anything the
+    // admin just added — instead of the frozen JSON snapshots / mock arrays.
+    // Products come back newest-first (the backend's default sort).
+    Promise.all([
+      getProducts({ limit: 200 }),
+      getCategories(),
+      getProjects({ limit: 100 }),
+    ])
+      .then(([productData, cats, projectData]) => {
         const products = (productData.products || []).map(normalizeProduct);
+        const projects = projectData.projects || [];
+
+        // ── Featured Products ──
         setFeaturedProducts(products.slice(0, 8));
 
+        // ── Laser Modules ──
         const lasers = products.filter((p) => (p.category || '').toLowerCase().includes('laser'));
         setLaserProducts((lasers.length > 0 ? lasers : DUMMY_LASERS).slice(0, 10));
 
-        // The category endpoint only returns { id, name } — derive product
-        // counts client-side from the same batch so the carousel still shows
-        // "N products" per category.
+        // ── Categories (derive per-category product counts client-side) ──
         setCategories(
           cats.map((c) => ({
             ...c,
@@ -92,14 +94,46 @@ export default function Home() {
             count: products.filter((p) => p.categoryId === c.id).length,
           }))
         );
-      })
-      .catch((err) => console.error('Failed to load products/categories:', err));
 
-    loadProjects().then(({ projects }) => {
-      const popular = projects.filter((p) => p.badge === 'POPULAR');
-      setFeaturedProjects([...popular, ...DUMMY_PROJECTS].slice(0, 10));
-    });
-    setNewArrivals(MOCK_NEW_ARRIVALS);
+        // ── Featured Projects (real DB projects) ──
+        // Prefer admin-flagged featured projects; otherwise fall back to the
+        // most recent real projects. Placeholders only if the DB has none.
+        const featured = projects.filter((p) => p.isFeatured);
+        const projectList = featured.length > 0 ? featured : projects;
+        setFeaturedProjects(projectList.length > 0 ? projectList.slice(0, 10) : DUMMY_PROJECTS);
+
+        // ── New Arrivals (only genuinely recent additions) ──
+        // Combine newly added products with projects the admin flagged as new
+        // arrivals, keep only those created within the recency window, newest
+        // first.
+        const toArrival = (item, type) => ({
+          id: item.id,
+          type,
+          name: type === 'project' ? item.title : item.name,
+          price: Number(item.price) || 0,
+          image: item.imageUrl && String(item.imageUrl).startsWith('http') ? item.imageUrl : '',
+          createdAt: item.createdAt,
+        });
+
+        const productArrivals = products.map((p) => toArrival(p, 'product'));
+        const projectArrivals = projects
+          .filter((p) => p.isNewArrival)
+          .map((p) => toArrival(p, 'project'));
+
+        const combined = [...productArrivals, ...projectArrivals].sort(
+          (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+        );
+
+        const recent = combined.filter(
+          (item) => new Date(item.createdAt).getTime() >= windowStart
+        );
+
+        // Show only items added within the recency window. If nothing is that
+        // recent yet, fall back to the newest real items overall so the
+        // section still reflects the database (never a hardcoded mock list).
+        setNewArrivals((recent.length > 0 ? recent : combined).slice(0, 12));
+      })
+      .catch((err) => console.error('Failed to load home data:', err));
   }, []);
 
   // Auto-advance the featured carousel
@@ -336,7 +370,7 @@ export default function Home() {
                     NEW
                   </div>
                   <div
-                    onClick={() => navigate(item.type === 'project' ? `/project/${item.id}` : `/products/${item.id}`)}
+                    onClick={() => navigate(item.type === 'project' ? `/project/${item.id}` : `/product/${item.id}`)}
                     style={{ width: '100%', aspectRatio: '1', background: 'var(--bg3)', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', cursor: 'pointer' }}
                   >
                     {item.image ? (
@@ -347,7 +381,7 @@ export default function Home() {
                   </div>
                   <div style={{ padding: '12px 4px 4px' }}>
                     <div
-                      onClick={() => navigate(item.type === 'project' ? `/project/${item.id}` : `/products/${item.id}`)}
+                      onClick={() => navigate(item.type === 'project' ? `/project/${item.id}` : `/product/${item.id}`)}
                       style={{ fontSize: '0.9rem', fontWeight: 600, marginBottom: '4px', cursor: 'pointer' }}
                     >
                       {item.name}
@@ -364,14 +398,14 @@ export default function Home() {
                     </div>
                     <div style={{ display: 'flex', gap: '8px' }}>
                       <button
-                        onClick={(e) => { e.stopPropagation(); navigate(item.type === 'project' ? `/project/${item.id}` : `/products/${item.id}`); }}
+                        onClick={(e) => { e.stopPropagation(); navigate(item.type === 'project' ? `/project/${item.id}` : `/product/${item.id}`); }}
                         className="btn-primary"
                         style={{ flex: 1, padding: '9px', fontSize: '0.8rem' }}
                       >
                         Buy Now
                       </button>
                       <button
-                        onClick={(e) => { e.stopPropagation(); navigate(item.type === 'project' ? `/project/${item.id}` : `/products/${item.id}`); }}
+                        onClick={(e) => { e.stopPropagation(); navigate(item.type === 'project' ? `/project/${item.id}` : `/product/${item.id}`); }}
                         className="btn-ghost"
                         style={{ flex: 1, padding: '9px', fontSize: '0.8rem' }}
                       >
