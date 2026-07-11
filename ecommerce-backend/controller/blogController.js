@@ -1,5 +1,10 @@
 const prisma = require("../prisma/client");
 
+// Normalize whatever the client sends for linkedProducts into a plain array,
+// so the Json column always holds a predictable shape.
+const cleanLinks = (linkedProducts) =>
+    Array.isArray(linkedProducts) ? linkedProducts : [];
+
 // =============================
 // Get All Blog Posts (Public)
 // =============================
@@ -18,10 +23,15 @@ exports.getBlogPosts = async (req, res) => {
                 skip,
                 take: limitNum,
                 select: {
-                    id:        true,
-                    title:     true,
-                    imageUrl:  true,
-                    createdAt: true
+                    id:             true,
+                    title:          true,
+                    content:        true,
+                    imageUrl:       true,
+                    status:         true,
+                    author:         true,
+                    slug:           true,
+                    linkedProducts: true,
+                    createdAt:      true
                 }
             })
         ]);
@@ -65,7 +75,7 @@ exports.getBlogPostById = async (req, res) => {
 // =============================
 exports.createBlogPost = async (req, res) => {
     try {
-        const { title, content, imageUrl } = req.body;
+        const { title, content, imageUrl, status, author, slug, linkedProducts } = req.body;
 
         if (!title || !content) {
             return res.status(400).json({
@@ -81,9 +91,13 @@ exports.createBlogPost = async (req, res) => {
 
         const post = await prisma.blogPost.create({
             data: {
-                title:    title.trim(),
-                content:  content.trim(),
-                imageUrl: imageUrl || null
+                title:          title.trim(),
+                content:        content.trim(),
+                imageUrl:       imageUrl || null,
+                status:         status || "Draft",
+                author:         author || "Admin",
+                slug:           slug || null,
+                linkedProducts: cleanLinks(linkedProducts)
             }
         });
 
@@ -104,7 +118,7 @@ exports.createBlogPost = async (req, res) => {
 exports.updateBlogPost = async (req, res) => {
     try {
         const id = Number(req.params.id);
-        const { title, content, imageUrl } = req.body;
+        const { title, content, imageUrl, status, author, slug, linkedProducts } = req.body;
 
         const post = await prisma.blogPost.findUnique({ where: { id } });
 
@@ -121,9 +135,13 @@ exports.updateBlogPost = async (req, res) => {
         const updatedPost = await prisma.blogPost.update({
             where: { id },
             data: {
-                title:    title   ? title.trim()   : post.title,
-                content:  content ? content.trim() : post.content,
-                imageUrl: imageUrl !== undefined   ? imageUrl : post.imageUrl
+                title:          title   ? title.trim()   : post.title,
+                content:        content ? content.trim() : post.content,
+                imageUrl:       imageUrl !== undefined       ? (imageUrl || null) : post.imageUrl,
+                status:         status   !== undefined       ? status             : post.status,
+                author:         author   !== undefined       ? author             : post.author,
+                slug:           slug     !== undefined       ? (slug || null)     : post.slug,
+                linkedProducts: linkedProducts !== undefined ? cleanLinks(linkedProducts) : post.linkedProducts
             }
         });
 
