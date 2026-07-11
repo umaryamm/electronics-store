@@ -1,323 +1,202 @@
-const { PrismaClient } = require("@prisma/client");
-const prisma = new PrismaClient();
+const prisma = require("../prisma/client");
 
+const SHIPPING_OPTIONS = {
+  daewoo:     { label: "Delivery via Daewoo FastEx", cost: 350, taxable: true },
+  leopard:    { label: "Delivery via Leopard Courier Service", cost: 350, taxable: true },
+  tcs:        { label: "Delivery via TCS Courier Service", cost: 350, taxable: true },
+  advance:    { label: "Advance Payment", cost: 350, taxable: false },
+  withinCity: { label: "Within City Only (Multan)", cost: 250, taxable: true },
+  pickup:     { label: "Self Pickup (Multan)", cost: 0, taxable: false },
+};
+const TAX_RATE = 0.04;
+const ORDER_STATUSES = ["pending", "processing", "shipped", "delivered", "cancelled"];
 
-const VALID_PAYMENT_METHODS = ["COD", "Bank Transfer"];
+exports.getShippingOptions = (req, res) => {
+  const options = Object.entries(SHIPPING_OPTIONS).map(([key, v]) => ({
+    key, label: v.label, cost: v.cost, taxable: v.taxable
+  }));
+  res.json(options);
+};
 
-exports.createOrder = async (req, res) => {
+exports.checkout = async (req, res) => {
     try {
         const userId = req.user.userId;
-        const { shippingAddressId, shippingMethod, shippingCost, paymentMethod } = req.body;
+        const { addressId, addressOverride, shippingOption, paymentMethod, notes } = req.body;
 
-        // Validate payment method up front — this also gates the tax logic below
-        if (!VALID_PAYMENT_METHODS.includes(paymentMethod)) {
-            return res.status(400).json({ message: "Invalid payment method." });
+        if (!shippingOption || !SHIPPING_OPTIONS[shippingOption]) {
+            return res.status(400).json({ message: "A valid shippingOption is required." });
+        }
+        const { label: shippingLabel, cost: shippingCost, taxable } = SHIPPING_OPTIONS[shippingOption];
+
+        // Address resolution priority: explicit override text > explicit saved addressId > user's default saved shipping address
+        let formattedAddress;
+        if (addressOverride && addressOverride.trim()) {
+            formattedAddress = addressOverride.trim();
+        } else if (addressId) {
+            const address = await prisma.address.findUnique({ where: { id: Number(addressId) } });
+            if (!address) return res.status(404).json({ message: "Address not found." });
+            if (address.userId !== userId) return res.status(403).json({ message: "Forbidden." });
+            formattedAddress = `${address.fullName}, ${address.street}, ${address.city} — ${address.phone}`;
+        } else {
+            const saved = await prisma.address.findUnique({ where: { userId_type: { userId, type: "shipping" } } });
+            if (!saved) {
+                return res.status(400).json({ message: "No saved address found. Please provide an address." });
+            }
+            formattedAddress = `${saved.fullName}, ${saved.street}, ${saved.city} — ${saved.phone}`;
         }
 
-        // Get user's cart
+        const finalPaymentMethod = paymentMethod === "WhatsApp" ? "WhatsApp" : "COD";
+
         const cart = await prisma.cart.findUnique({
             where: { userId },
-            include: { items: { include: { product: true } } }
+            include: { items: { include: { product: true, project: true } } }
         });
 
         if (!cart || cart.items.length === 0) {
-            return res.status(400).json({ message: "Cart is empty." });
+            return res.status(400).json({ message: "Your cart is empty." });
         }
 
-        // Validate address
-        const address = await prisma.address.findUnique({
-            where: { id: Number(shippingAddressId) }
-        });
-
-        if (!address || address.userId !== userId) {
-            return res.status(404).json({ message: "Address not found." });
+        const validItems = cart.items.filter((item) =>
+            item.itemType === "PROJECT" ? item.project !== null : item.product !== null
+        );
+        if (validItems.length === 0) {
+            return res.status(400).json({ message: "Your cart items are no longer available." });
         }
 
-        // Stock check BEFORE touching anything — fail fast with a clear message
-        for (const item of cart.items) {
-            if (item.product.stock < item.quantity) {
+        for (const item of validItems) {
+            if (item.itemType === "PRODUCT" && item.quantity > item.product.stock) {
                 return res.status(400).json({
-                    message: `${item.product.name} only has ${item.product.stock} left in stock.`
+                    message: `${item.product.name} only has ${item.product.stock} units left. Please update your cart.`
                 });
             }
         }
 
-        // Calculate subtotal from DB (never trust frontend)
-        let subtotal = 0;
-        const orderItems = [];
+        const subtotal = validItems.reduce((sum, item) => {
+            const price = item.itemType === "PROJECT" ? item.project.price : item.product.price;
+            return sum + item.quantity * price;
+        }, 0);
 
-        for (const item of cart.items) {
-            const product = item.product;
-            const itemTotal = product.price * item.quantity;
-            subtotal += itemTotal;
-
-            orderItems.push({
-                productId: product.id,
-                productName: product.name,
-                quantity: item.quantity,
-                priceAtOrder: product.price
-            });
-        }
-
-        // Calculate tax (4% for COD, 0% for bank transfer)
-        const taxAmount = paymentMethod === "COD" ? (subtotal + shippingCost) * 0.04 : 0;
-
-        // Calculate total
+        const taxAmount = taxable ? Math.round((subtotal + shippingCost) * TAX_RATE) : 0;
         const total = subtotal + shippingCost + taxAmount;
 
-        const addressData = JSON.stringify({
-            fullName: address.fullName,
-            street: address.street,
-            city: address.city,
-            phone: address.phone
-        });
-
-        // Everything below must succeed together, or none of it should persist.
         const order = await prisma.$transaction(async (tx) => {
-            const createdOrder = await tx.order.create({
+            const newOrder = await tx.order.create({
                 data: {
                     userId,
-                    shippingAddress: addressData,
-                    billingAddress: addressData,
-                    shippingMethod,
+                    shippingAddress: formattedAddress,
+                    billingAddress: formattedAddress,
+                    shippingMethod: shippingLabel,
                     shippingCost,
                     subtotal,
                     taxAmount,
                     total,
-                    paymentMethod,
-                    status: "pending",
-                    items: {
-                        create: orderItems
-                    }
-                },
-                include: { items: true }
+                    paymentMethod: finalPaymentMethod,
+                    notes: notes || null,
+                    status: "pending"
+                }
             });
 
-            // Decrement stock for each product
-            for (const item of cart.items) {
-                await tx.product.update({
-                    where: { id: item.productId },
-                    data: { stock: { decrement: item.quantity } }
+            for (const item of validItems) {
+                const isProject = item.itemType === "PROJECT";
+                const price = isProject ? item.project.price : item.product.price;
+                const name = isProject ? item.project.title : item.product.name;
+
+                await tx.orderItem.create({
+                    data: {
+                        orderId: newOrder.id,
+                        itemType: item.itemType,
+                        productId: isProject ? null : item.productId,
+                        projectId: isProject ? item.projectId : null,
+                        itemName: name,
+                        quantity: item.quantity,
+                        priceAtOrder: price
+                    }
                 });
+
+                if (!isProject) {
+                    await tx.product.update({
+                        where: { id: item.productId },
+                        data: { stock: { decrement: item.quantity } }
+                    });
+                }
             }
 
-            // Clear cart
             await tx.cartItem.deleteMany({ where: { cartId: cart.id } });
-
-            return createdOrder;
+            return newOrder;
         });
 
-        res.status(201).json({
-            message: "Order created successfully.",
-            order
+        const fullOrder = await prisma.order.findUnique({
+            where: { id: order.id },
+            include: { items: true }
         });
+
+        res.status(201).json({ message: "Order placed successfully.", order: fullOrder });
 
     } catch (error) {
         console.error(error);
-        res.status(500).json({ message: "Server Error", error: error.message });
+        res.status(500).json({ message: "Server Error" });
     }
 };
 
-// =============================
-// GET MY ORDERS (Customer)
-// =============================
 exports.getMyOrders = async (req, res) => {
     try {
         const userId = req.user.userId;
-
         const orders = await prisma.order.findMany({
             where: { userId },
-            include: { items: { include: { product: true } } },
+            include: { items: true },
             orderBy: { createdAt: "desc" }
         });
-
-        res.json({
-            message: "Orders fetched successfully.",
-            orders
-        });
-
+        res.json(orders);
     } catch (error) {
         console.error(error);
         res.status(500).json({ message: "Server Error" });
     }
 };
 
-// =============================
-// GET MY ORDER BY ID (Customer)
-// =============================
-exports.getMyOrderById = async (req, res) => {
-    try {
-        const userId = req.user.userId;
-        const { id } = req.params;
-
-        const order = await prisma.order.findUnique({
-            where: { id: Number(id) },
-            include: { items: { include: { product: true } } }
-        });
-
-        if (!order) {
-            return res.status(404).json({ message: "Order not found." });
-        }
-
-        if (order.userId !== userId) {
-            return res.status(403).json({ message: "Unauthorized to view this order." });
-        }
-
-        res.json({
-            message: "Order fetched successfully.",
-            order
-        });
-
-    } catch (error) {
-        console.error(error);
-        res.status(500).json({ message: "Server Error" });
-    }
-};
-
-// =============================
-// GET ALL ORDERS (Admin)
-// =============================
-exports.getAllOrders = async (req, res) => {
-    try {
-        const { status, page = 1, limit = 10 } = req.query;
-
-        const where = status ? { status } : {};
-        const skip = (page - 1) * limit;
-
-        const orders = await prisma.order.findMany({
-            where,
-            include: { 
-                items: { include: { product: true } },
-                user: { select: { id: true, name: true, email: true, phone: true } }
-            },
-            orderBy: { createdAt: "desc" },
-            skip: Number(skip),
-            take: Number(limit)
-        });
-
-        const totalOrders = await prisma.order.count({ where });
-
-        res.json({
-            message: "All orders fetched successfully.",
-            orders,
-            totalOrders,
-            currentPage: Number(page),
-            totalPages: Math.ceil(totalOrders / limit)
-        });
-
-    } catch (error) {
-        console.error(error);
-        res.status(500).json({ message: "Server Error" });
-    }
-};
-
-// =============================
-// GET ORDER BY ID (Admin)
-// =============================
 exports.getOrderById = async (req, res) => {
     try {
-        const { id } = req.params;
+        const userId = req.user.userId;
+        const orderId = Number(req.params.id);
+        if (!Number.isInteger(orderId)) return res.status(400).json({ message: "Invalid order id." });
 
         const order = await prisma.order.findUnique({
-            where: { id: Number(id) },
-            include: { 
-                items: { include: { product: true } },
-                user: { select: { id: true, name: true, email: true, phone: true } }
+            where: { id: orderId },
+            include: { items: true }
+        });
+
+        if (!order) return res.status(404).json({ message: "Order not found." });
+        if (order.userId !== userId) return res.status(403).json({ message: "Forbidden." });
+
+        res.json(order);
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: "Server Error" });
+    }
+};
+
+// Admin only — sets fulfillment status and/or tracking number
+exports.updateOrderStatus = async (req, res) => {
+    try {
+        const orderId = Number(req.params.id);
+        const { status, trackingNumber } = req.body;
+
+        if (!Number.isInteger(orderId)) return res.status(400).json({ message: "Invalid order id." });
+        if (status && !ORDER_STATUSES.includes(status)) {
+            return res.status(400).json({ message: `status must be one of: ${ORDER_STATUSES.join(", ")}` });
+        }
+
+        const order = await prisma.order.update({
+            where: { id: orderId },
+            data: {
+                ...(status && { status }),
+                ...(trackingNumber !== undefined && { trackingNumber })
             }
         });
 
-        if (!order) {
-            return res.status(404).json({ message: "Order not found." });
-        }
-
-        res.json({
-            message: "Order fetched successfully.",
-            order
-        });
-
+        res.json({ message: "Order updated.", order });
     } catch (error) {
         console.error(error);
-        res.status(500).json({ message: "Server Error" });
-    }
-};
-
-// =============================
-// UPDATE ORDER STATUS (Admin)
-// =============================
-exports.updateOrderStatus = async (req, res) => {
-    try {
-        const { id } = req.params;
-        const { status } = req.body;
-
-        const validStatuses = ["pending", "paid", "shipped", "delivered", "cancelled"];
-
-        if (!validStatuses.includes(status)) {
-            return res.status(400).json({ message: "Invalid status." });
-        }
-
-        const order = await prisma.order.update({
-            where: { id: Number(id) },
-            data: { status },
-            include: { items: true }
-        });
-
-        res.json({
-            message: "Order status updated successfully.",
-            order
-        });
-
-    } catch (error) {
-        console.error(error);
-        res.status(500).json({ message: "Server Error" });
-    }
-};
-
-// =============================
-// UPDATE TRACKING NUMBER (Admin)
-// =============================
-exports.updateTrackingNumber = async (req, res) => {
-    try {
-        const { id } = req.params;
-        const { trackingNumber } = req.body;
-
-        if (!trackingNumber) {
-            return res.status(400).json({ message: "Tracking number is required." });
-        }
-
-        const order = await prisma.order.update({
-            where: { id: Number(id) },
-            data: { trackingNumber },
-            include: { items: true }
-        });
-
-        res.json({
-            message: "Tracking number updated successfully.",
-            order
-        });
-
-    } catch (error) {
-        console.error(error);
-        res.status(500).json({ message: "Server Error" });
-    }
-};
-
-// =============================
-// DELETE ORDER (Admin)
-// =============================
-exports.deleteOrder = async (req, res) => {
-    try {
-        const { id } = req.params;
-
-        await prisma.order.delete({
-            where: { id: Number(id) }
-        });
-
-        res.json({
-            message: "Order deleted successfully."
-        });
-
-    } catch (error) {
-        console.error(error);
+        if (error.code === "P2025") return res.status(404).json({ message: "Order not found." });
         res.status(500).json({ message: "Server Error" });
     }
 };

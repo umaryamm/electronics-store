@@ -1,20 +1,21 @@
 import api from "./axiosConfig";
 
-// POST /api/orders — this is the checkout submission
-export const createOrder = async (data) => {
-  // data: { shippingAddressId, shippingMethod, shippingCost, paymentMethod }
-  const res = await api.post("/api/orders", data);
+export const getShippingOptions = async () => {
+  const res = await api.get("/api/orders/shipping-options");
   return res.data;
 };
 
-// GET /api/orders/my — customer's own order list
+export const checkout = async (payload) => {
+  const res = await api.post("/api/orders", payload);
+  return res.data;
+};
+
 export const getMyOrders = async () => {
-  const res = await api.get("/api/orders/my");
+  const res = await api.get("/api/orders");
   return res.data;
 };
 
-// GET /api/orders/my/:id — single order detail / tracking page
-export const getMyOrder = async (id) => {
-  const res = await api.get(`/api/orders/my/${id}`);
+export const getOrderById = async (id) => {
+  const res = await api.get(`/api/orders/${id}`);
   return res.data;
 };

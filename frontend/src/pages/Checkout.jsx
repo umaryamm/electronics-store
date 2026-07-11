@@ -1,53 +1,74 @@
 import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
-import { loadProducts, formatPrice } from '../data/catalog';
-import { saveAddress } from '../api/addressService';
-import { checkout } from '../api/checkoutService';
-
-// Only two payment methods actually exist server-side — no gateway is wired up
-// for card/wallet, so offering them would 400 at the createOrder step.
-const PAY_OPTIONS = [
-  { id: 'cod', label: 'Cash on Delivery', desc: 'Pay when your order arrives', backendValue: 'COD' },
-  { id: 'bank', label: 'Bank Transfer', desc: 'Pay directly to our bank account', backendValue: 'Bank Transfer' },
-];
+import { getAddresses, saveAddress } from '../api/addressService';
+import { checkout } from '../api/orderService';
+import { formatPrice } from '../data/catalog';
 
 export default function Checkout() {
-  const { cart, clearCart } = useCart();
-  const { user } = useAuth(); // email comes from the authenticated user, not re-collected
-  const [products, setProducts] = useState([]);
-  const [payment, setPayment] = useState('cod');
-  const [placed, setPlaced] = useState(false);
-  const [submitting, setSubmitting] = useState(false);
-  const [error, setError] = useState(null);
+  const { cart, subtotal, refreshCart } = useCart();
+  const { user } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
 
-  // Controlled form fields — matches Address model exactly (fullName, street, city, phone).
-  // No postalCode/email: Address has no such columns, so collecting them here was dead weight.
-  const [form, setForm] = useState({
-    fullName: '',
-    phone: '',
-    street: '',
-    city: '',
-  });
+  const shippingOption = location.state?.shippingOption;
+  const addressOverrideFromCart = location.state?.addressOverride || null;
 
-  const updateField = (field) => (e) => setForm((f) => ({ ...f, [field]: e.target.value }));
+  const [savedAddress, setSavedAddress] = useState(null);
+  const [editing, setEditing] = useState(false);
+  const [form, setForm] = useState({ fullName: '', street: '', city: '', phone: '' });
+
+  const [loadingAddress, setLoadingAddress] = useState(!addressOverrideFromCart);
+  const [submitting, setSubmitting] = useState(false);
+  const [placed, setPlaced] = useState(false);
+  const [placedOrderId, setPlacedOrderId] = useState(null);
+  const [error, setError] = useState(null);
+
+  // shippingCost/tax were already computed in Cart.jsx for display, but we don't
+  // trust them here — the backend recomputes from shippingOption + subtotal server-side.
+  // This is just for the on-screen summary, not what's sent to the API.
+  const shippingCostDisplay = subtotal > 0 ? 350 : 0; // rough default; real value comes back in the order response
 
   useEffect(() => {
-    loadProducts().then(({ products }) => setProducts(products));
+    if (!shippingOption) {
+      // Someone landed here directly without going through Cart's shipping picker
+      navigate('/cart');
+      return;
+    }
+    if (cart.length === 0 && !placed) {
+      navigate('/cart');
+      return;
+    }
+    if (addressOverrideFromCart) {
+      setLoadingAddress(false);
+      return; // skip fetching saved address — cart override takes priority
+    }
+    (async () => {
+      try {
+        const addresses = await getAddresses();
+        const shippingAddr = addresses.find((a) => a.type === 'shipping');
+        if (shippingAddr) {
+          setSavedAddress(shippingAddr);
+          setForm({
+            fullName: shippingAddr.fullName,
+            street: shippingAddr.street,
+            city: shippingAddr.city,
+            phone: shippingAddr.phone,
+          });
+        } else {
+          setEditing(true);
+        }
+      } catch (err) {
+        console.error('Failed to load address:', err);
+      } finally {
+        setLoadingAddress(false);
+      }
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const lines = cart
-    .map((item) => {
-      const product = products.find((p) => p.id === item.id);
-      return product ? { ...item, product } : null;
-    })
-    .filter(Boolean);
-
-  const subtotal = lines.reduce((sum, l) => sum + l.product.price * l.qty, 0);
-  const shipping = subtotal > 0 && subtotal < 25000 ? 350 : 0;
-  const total = subtotal + shipping;
+  const updateField = (field) => (e) => setForm((f) => ({ ...f, [field]: e.target.value }));
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -55,35 +76,27 @@ export default function Checkout() {
     setSubmitting(true);
 
     try {
-      // Step 1: save the shipping address — response shape is confirmed as { message, address }
-      const addressRes = await saveAddress({
-        type: 'shipping',
-        fullName: form.fullName,
-        phone: form.phone,
-        street: form.street,
-        city: form.city,
-      });
+      let payload;
 
-      const shippingAddressId = addressRes.address.id;
+      if (addressOverrideFromCart) {
+        payload = { addressOverride: addressOverrideFromCart, shippingOption, paymentMethod: 'COD' };
+      } else {
+        if (!form.fullName || !form.street || !form.city || !form.phone) {
+          setError('Please fill in all address fields.');
+          setSubmitting(false);
+          return;
+        }
+        const { address } = await saveAddress({ type: 'shipping', ...form });
+        payload = { addressId: address.id, shippingOption, paymentMethod: 'COD' };
+      }
 
-      // Step 2: push local cart to backend cart, then create the order
-      const selectedPayment = PAY_OPTIONS.find((p) => p.id === payment);
-      const { order } = await checkout(cart, {
-        shippingAddressId,
-        shippingMethod: 'Standard Delivery',
-        shippingCost: shipping,
-        paymentMethod: selectedPayment.backendValue,
-      });
-
-      clearCart();
+      const { order } = await checkout(payload);
+      await refreshCart();
+      setPlacedOrderId(order.id);
       setPlaced(true);
-      // If you'd rather land straight on order tracking instead of the "placed" screen:
-      // navigate(`/orders/${order.id}`);
     } catch (err) {
       console.error('Checkout failed:', err);
-      setError(
-        err.response?.data?.message || 'Something went wrong placing your order. Please try again.'
-      );
+      setError(err?.response?.data?.message || 'Something went wrong placing your order. Please try again.');
     } finally {
       setSubmitting(false);
     }
@@ -97,19 +110,15 @@ export default function Checkout() {
         <p style={{ color: 'var(--text-sub)', marginBottom: '24px' }}>
           Thanks for shopping with Vision Giants{user?.email ? ` — a confirmation will be sent to ${user.email}` : ''}.
         </p>
-        <button className="btn-primary" onClick={() => navigate('/products')}>Continue Shopping</button>
+        <div style={{ display: 'flex', gap: '12px', justifyContent: 'center' }}>
+          <button className="btn-primary" onClick={() => navigate(`/orders/${placedOrderId}`)}>View Order</button>
+          <button className="btn-secondary" onClick={() => navigate('/products')}>Continue Shopping</button>
+        </div>
       </div>
     );
   }
 
-  if (lines.length === 0 && products.length > 0) {
-    return (
-      <div className="container" style={{ padding: '80px 0', textAlign: 'center' }}>
-        <p style={{ marginBottom: '16px' }}>Your cart is empty — nothing to check out yet.</p>
-        <button className="btn-primary" onClick={() => navigate('/products')}>Browse Products</button>
-      </div>
-    );
-  }
+  if (loadingAddress) return <div className="container" style={{ padding: '80px 0' }} />;
 
   return (
     <div className="container" style={{ paddingBottom: '80px' }}>
@@ -119,52 +128,85 @@ export default function Checkout() {
 
       <form onSubmit={handleSubmit} className="cart-layout">
         <div className="form-card">
-          <h3 style={{ marginBottom: '18px' }}>Shipping Details</h3>
-          <div className="form-grid">
-            <div className="field">
-              <label>Full Name</label>
-              <input required placeholder="Ali Raza" value={form.fullName} onChange={updateField('fullName')} />
-            </div>
-            <div className="field">
-              <label>Phone Number</label>
-              <input required placeholder="03xx-xxxxxxx" value={form.phone} onChange={updateField('phone')} />
-            </div>
-          </div>
-          <div className="field">
-            <label>Street Address</label>
-            <input required placeholder="House #, Street, Area" value={form.street} onChange={updateField('street')} />
-          </div>
-          <div className="field">
-            <label>City</label>
-            <input required placeholder="Multan" value={form.city} onChange={updateField('city')} />
-          </div>
+          <h3 style={{ marginBottom: '18px' }}>Shipping Address</h3>
 
-          <h3 style={{ margin: '24px 0 14px' }}>Payment Method</h3>
-          {PAY_OPTIONS.map((opt) => (
-            <label key={opt.id} className={`pay-option${payment === opt.id ? ' selected' : ''}`}>
-              <input type="radio" name="payment" checked={payment === opt.id} onChange={() => setPayment(opt.id)} />
-              <div>
-                <div style={{ fontWeight: 600, fontSize: '0.9rem' }}>{opt.label}</div>
-                <div style={{ fontSize: '0.78rem', color: 'var(--gray-mid)' }}>{opt.desc}</div>
+          {addressOverrideFromCart ? (
+            <div style={{ border: '1px solid #ddd', borderRadius: '8px', padding: '16px' }}>
+              <strong>Custom address (from cart)</strong>
+              <div style={{ fontSize: '0.9rem', color: '#666', marginTop: '4px', whiteSpace: 'pre-wrap' }}>
+                {addressOverrideFromCart}
               </div>
-            </label>
-          ))}
-
-          {error && (
-            <p style={{ color: '#c0392b', marginTop: '14px', fontSize: '0.85rem' }}>{error}</p>
+              <p style={{ fontSize: '0.75rem', color: '#888', marginTop: '8px' }}>
+                Go back to Cart to change this address.
+              </p>
+            </div>
+          ) : savedAddress && !editing ? (
+            <div style={{ border: '1px solid #ddd', borderRadius: '8px', padding: '16px', marginBottom: '12px' }}>
+              <strong>{savedAddress.fullName}</strong>
+              <div style={{ fontSize: '0.9rem', color: '#666', marginTop: '4px' }}>
+                {savedAddress.street}, {savedAddress.city} — {savedAddress.phone}
+              </div>
+              <button
+                type="button"
+                className="btn-secondary"
+                style={{ marginTop: '10px' }}
+                onClick={() => setEditing(true)}
+              >
+                Use a different address
+              </button>
+            </div>
+          ) : (
+            <div className="form-grid">
+              <div className="field">
+                <label>Full Name</label>
+                <input required placeholder="Ali Raza" value={form.fullName} onChange={updateField('fullName')} />
+              </div>
+              <div className="field">
+                <label>Phone Number</label>
+                <input required placeholder="03xx-xxxxxxx" value={form.phone} onChange={updateField('phone')} />
+              </div>
+              <div className="field">
+                <label>Street Address</label>
+                <input required placeholder="House #, Street, Area" value={form.street} onChange={updateField('street')} />
+              </div>
+              <div className="field">
+                <label>City</label>
+                <input required placeholder="Multan" value={form.city} onChange={updateField('city')} />
+              </div>
+              {savedAddress && (
+                <button type="button" className="btn-secondary" onClick={() => setEditing(false)}>
+                  Cancel
+                </button>
+              )}
+            </div>
           )}
+
+          <h3 style={{ margin: '24px 0 10px' }}>Payment Method</h3>
+          <div style={{ border: '1px solid #ddd', borderRadius: '8px', padding: '14px 16px' }}>
+            <strong>Cash on Delivery</strong>
+            <div style={{ fontSize: '0.8rem', color: 'var(--gray-mid)' }}>Pay when your order arrives</div>
+          </div>
+
+          {error && <p style={{ color: '#c0392b', marginTop: '14px', fontSize: '0.85rem' }}>{error}</p>}
         </div>
 
         <div className="summary-box">
           <h3>Order Summary</h3>
-          {lines.map(({ product, qty }) => (
-            <div className="summary-row" key={product.id}>
-              <span>{product.name} × {qty}</span>
-              <span>{formatPrice(product.price * qty)}</span>
-            </div>
-          ))}
-          <div className="summary-row"><span>Shipping</span><span>{shipping ? formatPrice(shipping) : 'Free'}</span></div>
-          <div className="summary-row total"><span>Total</span><span>{formatPrice(total)}</span></div>
+          {cart.map((item) => {
+            const isProject = item.itemType === 'PROJECT';
+            const entity = isProject ? item.project : item.product;
+            const name = isProject ? entity.title : entity.name;
+            return (
+              <div className="summary-row" key={item.id}>
+                <span>{name} × {item.quantity}</span>
+                <span>{formatPrice(entity.price * item.quantity)}</span>
+              </div>
+            );
+          })}
+          <div className="summary-row"><span>Subtotal</span><span>{formatPrice(subtotal)}</span></div>
+          <p style={{ fontSize: '0.75rem', color: '#888', marginTop: '4px' }}>
+            Final shipping cost and tax are confirmed on the next screen after you place your order.
+          </p>
           <button
             className="btn-primary"
             type="submit"

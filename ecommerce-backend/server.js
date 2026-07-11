@@ -51,6 +51,7 @@ app.use("/api/orders", orderRoutes);
 app.use("/api", reviewRoutes);
 app.use("/api/blog", blogRoutes);
 app.use('/api/projects', projectRoutes);
+app.use("/api/orders", require("./routes/orders"))
 
 // ---------------------------------------------------------------------
 // Serve the built React apps so both the storefront and the admin panel

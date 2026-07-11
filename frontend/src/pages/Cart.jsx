@@ -1,47 +1,73 @@
 import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
-import { getProduct } from '../api/productService';
+import { getShippingOptions, checkout } from '../api/orderService';
 import { formatPrice } from '../data/catalog';
 
+// Set this to your real business WhatsApp number, digits only, country code first (no +, no spaces)
+const WHATSAPP_NUMBER = '923001234567';
+
 export default function Cart() {
-  const { cart, increaseCartQty, decreaseCartQty, removeFromCart } = useCart();
-  const [productMap, setProductMap] = useState({});
-  const [loading, setLoading] = useState(true);
+  const { cart, subtotal, loading, increaseCartQty, decreaseCartQty, removeFromCart, refreshCart } = useCart();
   const navigate = useNavigate();
 
+  const [shippingOptions, setShippingOptions] = useState([]);
+  const [selectedShipping, setSelectedShipping] = useState(null);
+  const [showAddressBox, setShowAddressBox] = useState(false);
+  const [addressOverride, setAddressOverride] = useState('');
+  const [placingWhatsApp, setPlacingWhatsApp] = useState(false);
+  const [error, setError] = useState(null);
+
   useEffect(() => {
-    if (cart.length === 0) {
-      setLoading(false);
-      return;
-    }
-    setLoading(true);
-    // Fetch each cart item's product by id directly — the backend paginates the
-    // full catalog, so we can't rely on a bulk list containing every cart item.
-    Promise.all(
-      cart.map((item) =>
-        getProduct(item.id)
-          .then((p) => [item.id, p])
-          .catch(() => [item.id, null]) // product may have been deleted since it was added
-      )
-    ).then((pairs) => {
-      setProductMap(Object.fromEntries(pairs));
-      setLoading(false);
+    getShippingOptions().then((opts) => {
+      setShippingOptions(opts);
+      if (opts.length > 0) setSelectedShipping(opts[0].key);
     });
-  }, [cart]);
+  }, []);
 
-  const lines = cart
-    .map((item) => {
-      const product = productMap[item.id];
-      return product ? { ...item, product } : null;
-    })
-    .filter(Boolean);
+  const chosen = shippingOptions.find((o) => o.key === selectedShipping);
+  const shippingCost = chosen?.cost ?? 0;
+  const taxAmount = chosen?.taxable ? Math.round((subtotal + shippingCost) * 0.04) : 0;
+  const total = subtotal + shippingCost + taxAmount;
 
-  const removedCount = cart.length - lines.length;
+  const handleCheckout = () => {
+    navigate('/checkout', {
+      state: {
+        shippingOption: selectedShipping,
+        addressOverride: addressOverride.trim() || null,
+      },
+    });
+  };
 
-  const subtotal = lines.reduce((sum, l) => sum + l.product.price * l.qty, 0);
-  const shipping = subtotal > 0 && subtotal < 25000 ? 350 : 0;
-  const total = subtotal + shipping;
+  const handleWhatsAppOrder = async () => {
+    setError(null);
+    setPlacingWhatsApp(true);
+    try {
+      const { order } = await checkout({
+        shippingOption: selectedShipping,
+        addressOverride: addressOverride.trim() || undefined,
+        paymentMethod: 'WhatsApp',
+      });
+      await refreshCart();
+
+      const lines = order.items
+        .map((i) => `- ${i.itemName} x${i.quantity} (${formatPrice(i.priceAtOrder * i.quantity)})`)
+        .join('\n');
+      const message =
+        `New order #${order.id}\n\n${lines}\n\n` +
+        `Shipping: ${order.shippingMethod} (${formatPrice(order.shippingCost)})\n` +
+        `Tax: ${formatPrice(order.taxAmount)}\n` +
+        `Total: ${formatPrice(order.total)}\n\n` +
+        `Delivery address: ${order.shippingAddress}`;
+
+      window.open(`https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(message)}`, '_blank');
+      navigate(`/orders/${order.id}`, { state: { justPlaced: true } });
+    } catch (err) {
+      setError(err?.response?.data?.message || 'Could not place order. Please try again.');
+    } finally {
+      setPlacingWhatsApp(false);
+    }
+  };
 
   if (loading) return <div className="container" style={{ padding: '80px 0' }} />;
 
@@ -51,13 +77,7 @@ export default function Cart() {
         <h1 style={{ textAlign: 'left' }}>Your Cart</h1>
       </div>
 
-      {removedCount > 0 && (
-        <p style={{ color: '#c0392b', fontSize: '0.85rem', marginBottom: '12px' }}>
-          {removedCount} item{removedCount > 1 ? 's' : ''} in your cart {removedCount > 1 ? 'are' : 'is'} no longer available and {removedCount > 1 ? 'have' : 'has'} been removed from view.
-        </p>
-      )}
-
-      {lines.length === 0 ? (
+      {cart.length === 0 ? (
         <div className="empty-state">
           <p style={{ fontSize: '1.1rem', marginBottom: '16px' }}>🛒 Your cart is empty.</p>
           <Link className="btn-primary" to="/products" style={{ display: 'inline-flex' }}>Start Shopping</Link>
@@ -65,35 +85,114 @@ export default function Cart() {
       ) : (
         <div className="cart-layout">
           <div>
-            {lines.map(({ product, qty }) => {
-              const maxedOut = qty >= product.stock;
+            {cart.map((item) => {
+              const isProject = item.itemType === 'PROJECT';
+              const entity = isProject ? item.project : item.product;
+              const name = isProject ? entity.title : entity.name;
+              const maxedOut = !isProject && item.quantity >= entity.stock;
+
               return (
-                <div className="cart-item" key={product.id}>
+                <div className="cart-item" key={item.id}>
                   <div className="cart-item-img">
-                    <img src={product.imageUrl} alt={product.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                    <img src={entity.imageUrl} alt={name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                   </div>
                   <div>
-                    <div className="cart-item-name">{product.name}</div>
-                    <div className="cart-item-price">{formatPrice(product.price)}</div>
+                    <div className="cart-item-name">
+                      {name}
+                      {isProject && <span style={{ marginLeft: '8px', fontSize: '0.7rem', opacity: 0.7 }}>PROJECT</span>}
+                    </div>
+                    <div className="cart-item-price">{formatPrice(entity.price)}</div>
                   </div>
-                  <div className="qty-control">
-                    <button onClick={() => decreaseCartQty(product.id)}>−</button>
-                    <span>{qty}</span>
-                    <button onClick={() => increaseCartQty(product.id)} disabled={maxedOut}>+</button>
-                  </div>
-                  <button className="remove-btn" onClick={() => removeFromCart(product.id)}>Remove</button>
+
+                  {isProject ? (
+                    <div className="qty-control" style={{ opacity: 0.6 }}><span>Qty 1</span></div>
+                  ) : (
+                    <div className="qty-control">
+                      <button onClick={() => decreaseCartQty(item.id, item.quantity)}>−</button>
+                      <span>{item.quantity}</span>
+                      <button onClick={() => increaseCartQty(item.id, item.quantity)} disabled={maxedOut}>+</button>
+                    </div>
+                  )}
+
+                  <button className="remove-btn" onClick={() => removeFromCart(item.id)}>Remove</button>
                 </div>
               );
             })}
+
+            <div style={{ marginTop: '20px' }}>
+              {!showAddressBox ? (
+                <button className="btn-secondary" onClick={() => setShowAddressBox(true)}>
+                  📍 Change delivery address
+                </button>
+              ) : (
+                <div style={{ border: '1px solid #ddd', borderRadius: '8px', padding: '14px' }}>
+                  <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, marginBottom: '8px' }}>
+                    Delivery address for this order
+                  </label>
+                  <textarea
+                    rows={3}
+                    placeholder="House #, Street, Area, City, Phone"
+                    value={addressOverride}
+                    onChange={(e) => setAddressOverride(e.target.value)}
+                    style={{ width: '100%', padding: '10px', fontFamily: 'inherit', resize: 'vertical' }}
+                  />
+                  <p style={{ fontSize: '0.75rem', color: '#888', marginTop: '6px' }}>
+                    Leave blank to use your saved address.
+                  </p>
+                  <button
+                    className="btn-secondary"
+                    style={{ marginTop: '8px' }}
+                    onClick={() => { setShowAddressBox(false); setAddressOverride(''); }}
+                  >
+                    Cancel
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
 
           <div className="summary-box">
-            <h3>Order Summary</h3>
+            <h3>Cart Totals</h3>
             <div className="summary-row"><span>Subtotal</span><span>{formatPrice(subtotal)}</span></div>
-            <div className="summary-row"><span>Shipping</span><span>{shipping ? formatPrice(shipping) : 'Free'}</span></div>
+
+            <div style={{ margin: '14px 0' }}>
+              <strong style={{ fontSize: '0.85rem' }}>Shipment</strong>
+              {shippingOptions.map((opt) => (
+                <label key={opt.key} style={{ display: 'block', fontSize: '0.85rem', margin: '8px 0', cursor: 'pointer' }}>
+                  <input
+                    type="radio"
+                    name="shippingOption"
+                    checked={selectedShipping === opt.key}
+                    onChange={() => setSelectedShipping(opt.key)}
+                    style={{ marginRight: '8px' }}
+                  />
+                  {opt.label}{opt.taxable ? ' (COD 4% tax applies)' : ''}: <strong>{formatPrice(opt.cost)}</strong>
+                </label>
+              ))}
+            </div>
+
+            {taxAmount > 0 && (
+              <div className="summary-row"><span>4% Tax (Govt.-mandated)</span><span>{formatPrice(taxAmount)}</span></div>
+            )}
             <div className="summary-row total"><span>Total</span><span>{formatPrice(total)}</span></div>
-            <button className="btn-primary" style={{ width: '100%', justifyContent: 'center', marginTop: '16px' }} onClick={() => navigate('/checkout')}>
+
+            {error && <p style={{ color: '#c0392b', fontSize: '0.85rem', marginTop: '10px' }}>{error}</p>}
+
+            <button
+              className="btn-primary"
+              style={{ width: '100%', justifyContent: 'center', marginTop: '16px' }}
+              onClick={handleCheckout}
+              disabled={!selectedShipping}
+            >
               Proceed to Checkout
+            </button>
+            <button
+              className="btn-secondary"
+              style={{ width: '100%', justifyContent: 'center', marginTop: '10px' }}
+              onClick={handleWhatsAppOrder}
+              disabled={!selectedShipping || placingWhatsApp}
+            >
+              {placingWhatsApp ? 'Placing order...' : '💬 Order via WhatsApp'}
             </button>
           </div>
         </div>

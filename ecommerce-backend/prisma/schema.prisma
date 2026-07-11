@@ -58,13 +58,25 @@ model Cart {
   items     CartItem[]
 }
 
+enum CartItemType {
+  PRODUCT
+  PROJECT
+}
+
 model CartItem {
-  id        Int     @id @default(autoincrement())
+  id        Int          @id @default(autoincrement())
   cartId    Int
-  productId Int
-  quantity  Int
-  cart      Cart    @relation(fields: [cartId], references: [id], onDelete: Cascade)
-  product   Product @relation(fields: [productId], references: [id])
+  itemType  CartItemType @default(PRODUCT)
+  productId Int?
+  projectId Int?
+  quantity  Int          @default(1)
+  cart      Cart         @relation(fields: [cartId], references: [id], onDelete: Cascade)
+  product   Product?     @relation(fields: [productId], references: [id])
+  project   Project?     @relation(fields: [projectId], references: [id])
+
+  @@unique([cartId, productId, itemType])
+  @@unique([cartId, projectId, itemType])
+  @@index([cartId])
 }
 
 model Order {
@@ -91,14 +103,17 @@ model Order {
 }
 
 model OrderItem {
-  id           Int     @id @default(autoincrement())
+  id           Int          @id @default(autoincrement())
   orderId      Int
-  productId    Int
-  productName  String
+  itemType     CartItemType @default(PRODUCT)
+  productId    Int?
+  projectId    Int?
+  itemName     String
   quantity     Int
   priceAtOrder Float
-  order        Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  product      Product @relation(fields: [productId], references: [id])
+  order        Order        @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product      Product?     @relation(fields: [productId], references: [id])
+  project      Project?     @relation(fields: [projectId], references: [id])
 }
 
 model Address {
@@ -139,21 +154,23 @@ model BlogPost {
 }
 
 model Project {
-  id               Int       @id @default(autoincrement())
+  id               Int         @id @default(autoincrement())
   category         String
   imageUrl         String?
-  createdAt        DateTime  @default(now())
-  updatedAt        DateTime  @updatedAt
+  createdAt        DateTime    @default(now())
+  updatedAt        DateTime    @updatedAt
   completionDate   DateTime?
   githubUrl        String?
   introDescription String?
   introImageUrl    String?
-  isFeatured       Boolean   @default(false)
-  isNewArrival     Boolean   @default(false)
-  price            Float     @default(0)
-  sections         Json      @default("[]")
-  status           String    @default("In Progress")
+  isFeatured       Boolean     @default(false)
+  isNewArrival     Boolean     @default(false)
+  price            Float       @default(0)
+  sections         Json        @default("[]")
+  status           String      @default("In Progress")
   title            String
+  cartItems        CartItem[]
+  orderItems       OrderItem[]
 
   @@index([category])
   @@index([status])

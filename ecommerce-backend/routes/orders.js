@@ -1,30 +1,19 @@
 const express = require("express");
-const router  = express.Router();
-
-const auth  = require("../middleware/auth");
+const router = express.Router();
+const auth = require("../middleware/auth");
 const admin = require("../middleware/admin");
-
 const {
-    createOrder,
+    checkout,
     getMyOrders,
-    getMyOrderById,
-    getAllOrders,
     getOrderById,
-    updateOrderStatus,
-    updateTrackingNumber,
-    deleteOrder
+    getShippingOptions,
+    updateOrderStatus
 } = require("../controller/orderController");
 
-// Customer
-router.post("/",       auth,        createOrder);
-router.get("/my",      auth,        getMyOrders);
-router.get("/my/:id",  auth,        getMyOrderById);
-
-// Admin
-router.get("/",           auth, admin, getAllOrders);
-router.get("/:id",        auth, admin, getOrderById);
+router.get("/shipping-options", getShippingOptions); // public — just pricing info, no sensitive data
+router.post("/", auth, checkout);
+router.get("/", auth, getMyOrders);
+router.get("/:id", auth, getOrderById);
 router.put("/:id/status", auth, admin, updateOrderStatus);
-router.put("/:id/tracking", auth, admin, updateTrackingNumber);
-router.delete("/:id",     auth, admin, deleteOrder);
 
 module.exports = router;
