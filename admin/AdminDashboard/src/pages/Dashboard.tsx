@@ -1,18 +1,43 @@
 // src/pages/Dashboard.tsx
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import productsData from '../products.json'; 
+import { getDashboardStats, DashboardStats } from '../api/statsService';
+
+const EMPTY_STATS: DashboardStats = {
+  totalProducts: 0,
+  totalOrdersThisMonth: 0,
+  clientQueriesPending: 0,
+  newOrders24h: 0,
+  totalProjectsCount: 0,
+  totalBlogsCount: 0,
+};
 
 export const Dashboard: React.FC = () => {
-  const totalProducts = productsData.products.length;
+  // Live counts pulled from the backend so every card reflects real
+  // database data instead of hardcoded placeholder numbers.
+  const [stats, setStats] = useState<DashboardStats>(EMPTY_STATS);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  const [stats] = useState({
-    totalOrdersThisMonth: 142,
-    clientQueriesPending: 8,
-    newOrders24h: 12,
-    totalProjectsCount: 3,
-    totalBlogsCount: 2 
-  });
+  useEffect(() => {
+    let active = true;
+    getDashboardStats()
+      .then((data) => {
+        if (active) setStats(data);
+      })
+      .catch((err) => {
+        console.error('Failed to load dashboard stats:', err);
+        if (active) setError('Could not load live stats.');
+      })
+      .finally(() => {
+        if (active) setLoading(false);
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  const totalProducts = stats.totalProducts;
 
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
 
@@ -70,6 +95,16 @@ export const Dashboard: React.FC = () => {
         </h1>
         <p style={{ color: '#64748b', marginTop: '0.25rem' }}>
           Here is an overview of your store's performance today.
+          {loading && (
+            <span style={{ marginLeft: '0.5rem', color: '#94a3b8', fontStyle: 'italic' }}>
+              Loading live data…
+            </span>
+          )}
+          {error && (
+            <span style={{ marginLeft: '0.5rem', color: '#ef4444' }}>
+              {error}
+            </span>
+          )}
         </p>
       </div>
 
