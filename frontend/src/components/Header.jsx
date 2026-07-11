@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useTheme } from '../context/ThemeContext';
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
-import { loadProducts } from '../data/catalog';
+import { getCategories } from '../api/categoryService';
 import SearchBar from './SearchBar';
 
 export default function Header() {
@@ -15,7 +15,9 @@ export default function Header() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    loadProducts().then(({ categories }) => setCategories(categories));
+    getCategories()
+      .then((cats) => setCategories(cats))
+      .catch((err) => console.error('Failed to load categories:', err));
   }, []);
 
   const handleProfileClick = () => {
@@ -82,10 +84,15 @@ export default function Header() {
             <div className="dropdown">
               {categories.map((cat) => (
                 <div key={cat.id} className="drop-item" onClick={() => navigate(`/products?category=${cat.id}`)}>
-                  <div className="drop-icon">{cat.emoji}</div>
+                  <div className="drop-icon">
+                    {cat.imageUrl ? (
+                      <img src={cat.imageUrl} alt={cat.name} style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: 'inherit' }} />
+                    ) : (
+                      '📦'
+                    )}
+                  </div>
                   <div>
                     <div className="drop-label">{cat.name}</div>
-                    <div className="drop-sub">{cat.description || `${cat.count || ''} items`}</div>
                   </div>
                 </div>
               ))}
