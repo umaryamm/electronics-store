@@ -176,6 +176,21 @@ model Project {
   @@index([createdAt])
 }
 
+model ClientQuery {
+  id          Int      @id @default(autoincrement())
+  clientName  String
+  clientEmail String
+  subject     String
+  message     String
+  status      String   @default("Unread")
+  priority    String   @default("Medium")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([status])
+  @@index([createdAt])
+}
+
 enum Role {
   USER
   ADMIN
