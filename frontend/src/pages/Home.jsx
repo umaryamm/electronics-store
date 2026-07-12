@@ -328,7 +328,7 @@ export default function Home() {
   return (
     <>
       <section className="hero" style={{ paddingTop: '64px' }}>
-        <div className="hero-eyebrow">✨ New 2025 Collection Live Now</div>
+        <div className="hero-eyebrow">✨ New Collection Live Now</div>
         <h1>See the <span>Future</span> of Technology</h1>
         <p>
           From 3D printers to Arduino modules and robotics parts — Vision Giants brings you the sharpest
