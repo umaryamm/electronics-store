@@ -23,7 +23,7 @@ export function WhatsAppFloat() {
   return (
     <a
       className="whatsapp-float"
-      href="https://wa.me/923000000000?text=Hi%2C%20I%20have%20a%20question%20about%20your%20products"
+      href="https://wa.me/923176572690?text=Hi%2C%20I%20have%20a%20question%20about%20your%20products"
       target="_blank"
       rel="noreferrer"
       title="Chat on WhatsApp"
