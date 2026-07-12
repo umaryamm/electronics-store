@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { loadProjects } from '../data/catalog';
 import { getProducts, normalizeProduct } from '../api/productService';
 import { getCategories } from '../api/categoryService';
+import { getProjects } from '../api/projectService';
 import ProductCard from '../components/ProductCard';
 import ProjectCard from '../components/ProjectCard';
 import BorderGlow from '../components/BorderGlow';
@@ -16,6 +16,30 @@ const FEATURES = [
   ['30-Day Returns', 'Changed your mind? Return anything within 30 days, no questions asked. Full refund, hassle-free.'],
   ['Expert Support 24/7', 'Real people, real answers — anytime. Our tech-savvy support team is on call around the clock for you.'],
 ];
+
+const DUMMY_PROJECTS = [
+  { id: 'dummy-1', emoji: '🚁', badge: 'POPULAR', category: 'Drone Projects', name: 'FPV Racing Drone Build Kit', rating: 4.7, reviews: 89, difficulty: 'Advanced', duration: '5–6 Weeks', description: 'Placeholder project — real data coming soon.' },
+  { id: 'dummy-2', emoji: '🌡️', badge: 'POPULAR', category: 'IoT Projects', name: 'ESP32 Weather Station', rating: 4.5, reviews: 134, difficulty: 'Beginner', duration: '1–2 Weeks', description: 'Placeholder project — real data coming soon.' },
+  { id: 'dummy-3', emoji: '🔋', badge: 'POPULAR', category: 'Power Electronics', name: 'Solar MPPT Charge Controller', rating: 4.6, reviews: 58, difficulty: 'Intermediate', duration: '3–4 Weeks', description: 'Placeholder project — real data coming soon.' },
+  { id: 'dummy-4', emoji: '🚗', badge: 'POPULAR', category: 'Robotics Projects', name: 'Line-Following Robot Car', rating: 4.4, reviews: 210, difficulty: 'Beginner', duration: '1 Week', description: 'Placeholder project — real data coming soon.' },
+  { id: 'dummy-5', emoji: '🔐', badge: 'POPULAR', category: 'Security Systems', name: 'RFID Door Lock System', rating: 4.8, reviews: 96, difficulty: 'Intermediate', duration: '2–3 Weeks', description: 'Placeholder project — real data coming soon.' },
+  { id: 'dummy-6', emoji: '💧', badge: 'POPULAR', category: 'Smart Home Projects', name: 'Automatic Plant Watering System', rating: 4.5, reviews: 77, difficulty: 'Beginner', duration: '1–2 Weeks', description: 'Placeholder project — real data coming soon.' },
+];
+
+// The category (as created in the admin dashboard) whose products populate the
+// "Laser Modules" section on the home page. Matched on the exact name first
+// (case-insensitive, whitespace-tolerant); if no exact match exists we fall
+// back to any category containing "laser" so a rename doesn't empty the row.
+const LASER_CATEGORY_NAME = 'Laser-Modules';
+
+const findLaserCategory = (cats = []) => {
+  const target = LASER_CATEGORY_NAME.trim().toLowerCase();
+  return (
+    cats.find((c) => (c.name || '').trim().toLowerCase() === target) ||
+    cats.find((c) => (c.name || '').toLowerCase().includes('laser')) ||
+    null
+  );
+};
 
 const MARQUEE = [
   'Free Delivery on Orders Above Rs 25,000',
@@ -32,6 +56,7 @@ export default function Home() {
   const [featuredProjects, setFeaturedProjects] = useState([]);
   const [newArrivals, setNewArrivals] = useState([]);
   const [laserProducts, setLaserProducts] = useState([]);
+  const [laserCategoryId, setLaserCategoryId] = useState(null);
   const [hoveredFeature, setHoveredFeature] = useState(null);
   const [pressedFeature, setPressedFeature] = useState(null);
   const navigate = useNavigate();
@@ -44,14 +69,65 @@ export default function Home() {
   const laserCarouselRef = useRef(null);
 
   useEffect(() => {
-    Promise.all([getProducts({ limit: 200 }), getCategories(), loadProjects()])
+    // Only items created within this many days count as "New Arrivals".
+    const NEW_ARRIVAL_WINDOW_DAYS = 30;
+    const windowStart = Date.now() - NEW_ARRIVAL_WINDOW_DAYS * 24 * 60 * 60 * 1000;
+
+    // Pull live products, categories, and projects together so every section
+    // reflects whatever is actually in the database — including anything the
+    // admin just added — instead of the frozen JSON snapshots / mock arrays.
+    // Products come back newest-first (the backend's default sort).
+    Promise.all([
+      getProducts({ limit: 200 }),
+      getCategories(),
+      getProjects({ limit: 100 }),
+    ])
       .then(([productData, cats, projectData]) => {
         const products = (productData.products || []).map(normalizeProduct);
+        const projects = projectData.projects || [];
+
+        // ── Featured Products ──
         setFeaturedProducts(products.slice(0, 8));
 
-        const lasers = products.filter((p) => (p.category || '').toLowerCase().includes('laser'));
-        setLaserProducts(lasers.slice(0, 10));
+        // ── Laser Modules ──
+        // Resolve the real "Laser Modules" category from the DB, then ask the
+        // backend for that category's products directly (?category=<id>) so the
+        // row never depends on the item happening to fall inside the 200-product
+        // page fetched above. Nothing matches => section renders nothing.
+        const laserCategory = findLaserCategory(cats);
 
+        // Temporary diagnostic — open DevTools > Console to see what's resolving.
+        console.debug('[Laser] categories from API:', cats.map((c) => `${c.id}:${c.name}`));
+        console.debug('[Laser] matched category:', laserCategory);
+
+        if (laserCategory) {
+          setLaserCategoryId(laserCategory.id);
+
+          getProducts({ category: laserCategory.id, limit: 10 })
+            .then((laserData) => {
+              const lasers = (laserData.products || []).map(normalizeProduct);
+              console.debug('[Laser] products returned for category', laserCategory.id, lasers);
+              setLaserProducts(lasers);
+            })
+            .catch((err) => {
+              console.error('[Laser] category fetch failed, falling back:', err);
+              // Fall back to filtering the already-loaded page. Ids are compared
+              // loosely (Number()) in case one side arrives as a string.
+              setLaserProducts(
+                products
+                  .filter((p) => Number(p.categoryId) === Number(laserCategory.id))
+                  .slice(0, 10)
+              );
+            });
+        } else {
+          console.warn(
+            `[Laser] No category matching "${Laser-Modules}" exists in the DB — section hidden.`
+          );
+          setLaserCategoryId(null);
+          setLaserProducts([]);
+        }
+
+        // ── Categories (derive per-category product counts client-side) ──
         setCategories(
           cats.map((c) => ({
             ...c,
@@ -60,22 +136,45 @@ export default function Home() {
           }))
         );
 
-        const projects = projectData.projects || [];
+        // ── Featured Projects (real DB projects) ──
+        // Prefer admin-flagged featured projects; otherwise fall back to the
+        // most recent real projects. Placeholders only if the DB has none.
+        const featured = projects.filter((p) => p.isFeatured);
+        const projectList = featured.length > 0 ? featured : projects;
+        setFeaturedProjects(projectList.length > 0 ? projectList.slice(0, 10) : DUMMY_PROJECTS);
 
-        // Prefer projects explicitly tagged "POPULAR"; if none are tagged
-        // yet, fall back to showing all real projects. No dummy data.
-        const popular = projects.filter((p) => p.badge === 'POPULAR');
-        setFeaturedProjects((popular.length > 0 ? popular : projects).slice(0, 10));
+        // ── New Arrivals (only genuinely recent additions) ──
+        // Combine newly added products with projects the admin flagged as new
+        // arrivals, keep only those created within the recency window, newest
+        // first.
+        const toArrival = (item, type) => ({
+          id: item.id,
+          type,
+          name: type === 'project' ? item.title : item.name,
+          price: Number(item.price) || 0,
+          image: item.imageUrl && String(item.imageUrl).startsWith('http') ? item.imageUrl : '',
+          createdAt: item.createdAt,
+        });
 
-        // New Arrivals: newest real products + real projects, rendered
-        // through the same ProductCard/ProjectCard used everywhere else.
-        const arrivals = [
-          ...products.slice(0, 3).map((p) => ({ ...p, kind: 'product' })),
-          ...projects.slice(0, 2).map((p) => ({ ...p, kind: 'project' })),
-        ];
-        setNewArrivals(arrivals);
+        const productArrivals = products.map((p) => toArrival(p, 'product'));
+        const projectArrivals = projects
+          .filter((p) => p.isNewArrival)
+          .map((p) => toArrival(p, 'project'));
+
+        const combined = [...productArrivals, ...projectArrivals].sort(
+          (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+        );
+
+        const recent = combined.filter(
+          (item) => new Date(item.createdAt).getTime() >= windowStart
+        );
+
+        // Show only items added within the recency window. If nothing is that
+        // recent yet, fall back to the newest real items overall so the
+        // section still reflects the database (never a hardcoded mock list).
+        setNewArrivals((recent.length > 0 ? recent : combined).slice(0, 12));
       })
-      .catch((err) => console.error('Failed to load homepage data:', err));
+      .catch((err) => console.error('Failed to load home data:', err));
   }, []);
 
   // Auto-advance the featured carousel
@@ -229,7 +328,7 @@ export default function Home() {
   return (
     <>
       <section className="hero" style={{ paddingTop: '64px' }}>
-        <div className="hero-eyebrow">✨ New 2025 Collection Live Now</div>
+        <div className="hero-eyebrow">✨ New Collection Live Now</div>
         <h1>See the <span>Future</span> of Technology</h1>
         <p>
           From 3D printers to Arduino modules and robotics parts — Vision Giants brings you the sharpest
@@ -306,11 +405,57 @@ export default function Home() {
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="15 18 9 12 15 6" /></svg>
             </button>
             <div className="product-carousel" ref={newArrivalsRef}>
-              {newArrivals.map((item) =>
-                item.kind === 'project'
-                  ? <ProjectCard key={`arrival-project-${item.id}`} project={item} />
-                  : <ProductCard key={`arrival-product-${item.id}`} product={item} />
-              )}
+              {newArrivals.map((item) => (
+                <div key={item.id} className="product-card">
+                  <div style={{ position: 'absolute', top: '10px', left: '10px', background: 'var(--cyan)', color: '#000', fontSize: '0.7rem', fontWeight: 700, padding: '3px 8px', borderRadius: '6px', zIndex: 1 }}>
+                    NEW
+                  </div>
+                  <div
+                    onClick={() => navigate(item.type === 'project' ? `/project/${item.id}` : `/product/${item.id}`)}
+                    style={{ width: '100%', aspectRatio: '1', background: 'var(--bg3)', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', cursor: 'pointer' }}
+                  >
+                    {item.image ? (
+                      <img src={item.image} alt={item.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                    ) : (
+                      <span style={{ fontSize: '0.75rem', color: 'var(--text-sub)' }}>{item.type === 'project' ? 'Project' : 'Product'}</span>
+                    )}
+                  </div>
+                  <div style={{ padding: '12px 4px 4px' }}>
+                    <div
+                      onClick={() => navigate(item.type === 'project' ? `/project/${item.id}` : `/product/${item.id}`)}
+                      style={{ fontSize: '0.9rem', fontWeight: 600, marginBottom: '4px', cursor: 'pointer' }}
+                    >
+                      {item.name}
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px' }}>
+                      <span style={{ fontSize: '0.95rem', color: 'var(--cyan)', fontWeight: 700 }}>Rs {item.price.toLocaleString()}</span>
+                      <button
+                        onClick={(e) => e.stopPropagation()}
+                        style={{ width: '32px', height: '32px', borderRadius: '8px', background: 'var(--bg3)', border: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
+                        aria-label="Add to cart"
+                      >
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>
+                      </button>
+                    </div>
+                    <div style={{ display: 'flex', gap: '8px' }}>
+                      <button
+                        onClick={(e) => { e.stopPropagation(); navigate(item.type === 'project' ? `/project/${item.id}` : `/product/${item.id}`); }}
+                        className="btn-primary"
+                        style={{ flex: 1, padding: '9px', fontSize: '0.8rem' }}
+                      >
+                        Buy Now
+                      </button>
+                      <button
+                        onClick={(e) => { e.stopPropagation(); navigate(item.type === 'project' ? `/project/${item.id}` : `/product/${item.id}`); }}
+                        className="btn-ghost"
+                        style={{ flex: 1, padding: '9px', fontSize: '0.8rem' }}
+                      >
+                        Quick View
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ))}
             </div>
             <button className="carousel-arrow next" onClick={() => scrollNewArrivals(1)} aria-label="Next">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="9 18 15 12 9 6" /></svg>
@@ -362,7 +507,7 @@ export default function Home() {
           </div>
         </section>
 
-        {laserProducts.length > 0 && (
+        {laserProducts.length >= 0 && (
           <section className="section">
             <div className="section-divider" />
             <div className="section-head section-head-center">
@@ -370,7 +515,16 @@ export default function Home() {
                 <h2>Laser Modules</h2>
                 <p>High-precision laser heads and engraving modules for CNC, wood, acrylic, and metal work.</p>
               </div>
-              <a className="section-link" href="/products" onClick={(e) => { e.preventDefault(); navigate('/products?category=laser-modules'); }}>View All →</a>
+              <a
+                className="section-link"
+                href={laserCategoryId ? `/products?category=${laserCategoryId}` : '/products'}
+                onClick={(e) => {
+                  e.preventDefault();
+                  navigate(laserCategoryId ? `/products?category=${laserCategoryId}` : '/products');
+                }}
+              >
+                View All →
+              </a>
             </div>
             <div className="carousel-wrap">
               <button className="carousel-arrow prev" onClick={() => scrollLaserCarousel(-1)} aria-label="Previous">

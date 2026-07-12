@@ -5,7 +5,7 @@ import { getShippingOptions, checkout } from '../api/orderService';
 import { formatPrice } from '../data/catalog';
 
 // Set this to your real business WhatsApp number, digits only, country code first (no +, no spaces)
-const WHATSAPP_NUMBER = '923001234567';
+const WHATSAPP_NUMBER = '923176572690';
 
 export default function Cart() {
   const { cart, subtotal, loading, increaseCartQty, decreaseCartQty, removeFromCart, refreshCart } = useCart();
