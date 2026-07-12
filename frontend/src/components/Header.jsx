@@ -80,8 +80,11 @@ export default function Header() {
       </div>
       <div className="nav-inner">
         <Link to="/" className="logo">
-          <img src="/logo.png" alt="Vision Giants" className="logo-img" />
-          <span className="logo-text">Vision<span>Giants</span></span>
+          <img
+            src={theme === 'light' ? '/logo-light.png' : '/logo-dark.png'}
+            alt="J. Electronics"
+            className="logo-wordmark"
+          />
         </Link>
 
         <ul className="nav-links">
