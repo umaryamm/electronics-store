@@ -26,14 +26,20 @@ const DUMMY_PROJECTS = [
   { id: 'dummy-6', emoji: '💧', badge: 'POPULAR', category: 'Smart Home Projects', name: 'Automatic Plant Watering System', rating: 4.5, reviews: 77, difficulty: 'Beginner', duration: '1–2 Weeks', description: 'Placeholder project — real data coming soon.' },
 ];
 
-const DUMMY_LASERS = [
-  { id: 'laser-1', emoji: '🔦', badge: '-14%', category: 'Laser Modules', name: '40W Fixed Focus Laser Head 450nm TTL', rating: 4.6, reviews: 42, price: 40000, originalPrice: 46500, description: 'Placeholder — real data coming soon.' },
-  { id: 'laser-2', emoji: '🔦', badge: '-28%', category: 'Laser Modules', name: '20W Laser Module 450nm Engraving Head', rating: 4.7, reviews: 61, price: 25500, originalPrice: 35500, description: 'Placeholder — real data coming soon.' },
-  { id: 'laser-3', emoji: '🔦', badge: '-13%', category: 'Laser Modules', name: '15W 450nm 40mm Laser Module DIY CNC', rating: 4.5, reviews: 38, price: 32500, originalPrice: 37500, description: 'Placeholder — real data coming soon.' },
-  { id: 'laser-4', emoji: '🔦', badge: '-25%', category: 'Laser Modules', name: '10W/5500mW Laser Module 450nm', rating: 4.4, reviews: 55, price: 20000, originalPrice: 26500, description: 'Placeholder — real data coming soon.' },
-  { id: 'laser-5', emoji: '🔦', badge: '-9%', category: 'Laser Modules', name: '80W Laser Module with Air Assist 450nm', rating: 4.8, reviews: 29, price: 58500, originalPrice: 64500, description: 'Placeholder — real data coming soon.' },
-  { id: 'laser-6', emoji: '🔦', badge: 'NEW', category: 'Laser Modules', name: '5.5W Laser Engraver Module 445nm', rating: 4.3, reviews: 18, price: 14500, description: 'Placeholder — real data coming soon.' },
-];
+// The category (as created in the admin dashboard) whose products populate the
+// "Laser Modules" section on the home page. Matched on the exact name first
+// (case-insensitive, whitespace-tolerant); if no exact match exists we fall
+// back to any category containing "laser" so a rename doesn't empty the row.
+const LASER_CATEGORY_NAME = 'Laser-Modules';
+
+const findLaserCategory = (cats = []) => {
+  const target = LASER_CATEGORY_NAME.trim().toLowerCase();
+  return (
+    cats.find((c) => (c.name || '').trim().toLowerCase() === target) ||
+    cats.find((c) => (c.name || '').toLowerCase().includes('laser')) ||
+    null
+  );
+};
 
 const MARQUEE = [
   'Free Delivery on Orders Above Rs 25,000',
@@ -50,6 +56,7 @@ export default function Home() {
   const [featuredProjects, setFeaturedProjects] = useState([]);
   const [newArrivals, setNewArrivals] = useState([]);
   const [laserProducts, setLaserProducts] = useState([]);
+  const [laserCategoryId, setLaserCategoryId] = useState(null);
   const [hoveredFeature, setHoveredFeature] = useState(null);
   const [pressedFeature, setPressedFeature] = useState(null);
   const navigate = useNavigate();
@@ -83,8 +90,42 @@ export default function Home() {
         setFeaturedProducts(products.slice(0, 8));
 
         // ── Laser Modules ──
-        const lasers = products.filter((p) => (p.category || '').toLowerCase().includes('laser'));
-        setLaserProducts((lasers.length > 0 ? lasers : DUMMY_LASERS).slice(0, 10));
+        // Resolve the real "Laser Modules" category from the DB, then ask the
+        // backend for that category's products directly (?category=<id>) so the
+        // row never depends on the item happening to fall inside the 200-product
+        // page fetched above. Nothing matches => section renders nothing.
+        const laserCategory = findLaserCategory(cats);
+
+        // Temporary diagnostic — open DevTools > Console to see what's resolving.
+        console.debug('[Laser] categories from API:', cats.map((c) => `${c.id}:${c.name}`));
+        console.debug('[Laser] matched category:', laserCategory);
+
+        if (laserCategory) {
+          setLaserCategoryId(laserCategory.id);
+
+          getProducts({ category: laserCategory.id, limit: 10 })
+            .then((laserData) => {
+              const lasers = (laserData.products || []).map(normalizeProduct);
+              console.debug('[Laser] products returned for category', laserCategory.id, lasers);
+              setLaserProducts(lasers);
+            })
+            .catch((err) => {
+              console.error('[Laser] category fetch failed, falling back:', err);
+              // Fall back to filtering the already-loaded page. Ids are compared
+              // loosely (Number()) in case one side arrives as a string.
+              setLaserProducts(
+                products
+                  .filter((p) => Number(p.categoryId) === Number(laserCategory.id))
+                  .slice(0, 10)
+              );
+            });
+        } else {
+          console.warn(
+            `[Laser] No category matching "${Laser-Modules}" exists in the DB — section hidden.`
+          );
+          setLaserCategoryId(null);
+          setLaserProducts([]);
+        }
 
         // ── Categories (derive per-category product counts client-side) ──
         setCategories(
@@ -466,7 +507,7 @@ export default function Home() {
           </div>
         </section>
 
-        {laserProducts.length > 0 && (
+        {laserProducts.length >= 0 && (
           <section className="section">
             <div className="section-divider" />
             <div className="section-head section-head-center">
@@ -474,7 +515,16 @@ export default function Home() {
                 <h2>Laser Modules</h2>
                 <p>High-precision laser heads and engraving modules for CNC, wood, acrylic, and metal work.</p>
               </div>
-              <a className="section-link" href="/products" onClick={(e) => { e.preventDefault(); navigate('/products?category=laser-modules'); }}>View All →</a>
+              <a
+                className="section-link"
+                href={laserCategoryId ? `/products?category=${laserCategoryId}` : '/products'}
+                onClick={(e) => {
+                  e.preventDefault();
+                  navigate(laserCategoryId ? `/products?category=${laserCategoryId}` : '/products');
+                }}
+              >
+                View All →
+              </a>
             </div>
             <div className="carousel-wrap">
               <button className="carousel-arrow prev" onClick={() => scrollLaserCarousel(-1)} aria-label="Previous">
