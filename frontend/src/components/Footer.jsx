@@ -26,7 +26,7 @@ export default function Footer() {
             <div className="footer-social" style={{ marginTop: '18px' }}>
               <a href="https://facebook.com" target="_blank" rel="noreferrer">f</a>
               <a href="https://instagram.com" target="_blank" rel="noreferrer">◎</a>
-              <a href="https://wa.me/923000000000" target="_blank" rel="noreferrer">✆</a>
+              <a href="https://wa.me/923176572690" target="_blank" rel="noreferrer">✆</a>
             </div>
           </div>
           <div className="footer-col">
