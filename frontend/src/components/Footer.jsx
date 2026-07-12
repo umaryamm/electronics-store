@@ -1,8 +1,10 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { useTheme } from '../context/ThemeContext';
 import { getCategories } from '../api/categoryService';
 
 export default function Footer() {
+  const { theme } = useTheme();
   const [categories, setCategories] = useState([]);
 
   useEffect(() => {
@@ -17,15 +19,18 @@ export default function Footer() {
         <div className="footer-grid">
           <div className="footer-col">
             <Link to="/" className="logo" style={{ marginBottom: '14px', display: 'flex' }}>
-              <img src="/logo.png" alt="Vision Giants" className="logo-img" />
-              <span className="logo-text" style={{ color: '#fff' }}>Vision<span>Giants</span></span>
+              <img
+                src={theme === 'light' ? '/logo-light.png' : '/logo-dark.png'}
+                alt="J. Electronics"
+                className="logo-wordmark"
+              />
             </Link>
             <p style={{ color: '#9CA3AF', fontSize: '0.85rem', lineHeight: 1.6, maxWidth: '280px' }}>
               Next-generation electronics, gadgets, and maker project kits — curated for builders in Pakistan and beyond.
             </p>
             <div className="footer-social" style={{ marginTop: '18px' }}>
               <a href="https://facebook.com" target="_blank" rel="noreferrer">f</a>
-              <a href="https://instagram.com" target="_blank" rel="noreferrer">◎</a>
+              <a href="https://instagram.com/visiongiants" target="_blank" rel="noreferrer">◎</a>
               <a href="https://wa.me/923176572690" target="_blank" rel="noreferrer">✆</a>
             </div>
           </div>
