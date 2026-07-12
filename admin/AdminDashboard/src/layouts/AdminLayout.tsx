@@ -33,7 +33,7 @@ export const AdminLayout = ({ children }: AdminLayoutProps) => {
       <aside style={{ width: '260px', backgroundColor: '#1e293b', color: '#fff', padding: '1.5rem' }}>
         {/* ✨ CHANGED: Branding Header updated to Vision Giants */}
         <h2 style={{ fontSize: '1.25rem', marginBottom: '2rem', borderBottom: '1px solid #334155', paddingBottom: '1rem', fontWeight: '700', letterSpacing: '0.025em' }}>
-          🚀 Vision Giants
+          🚀 J. Electronics
         </h2>
         <nav style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
           {navigationItems.map((item) => {
