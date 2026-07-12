@@ -5,8 +5,10 @@ export const getCart = async () => {
   return res.data;
 };
 
-export const addToCart = async (id, type = "product") => {
-  const payload = type === "project" ? { projectId: id } : { productId: id };
+export const addToCart = async (id, type = "product", quantity = 1) => {
+  const payload = type === "project"
+    ? { projectId: id, quantity: 1 }
+    : { productId: id, quantity };
   const res = await api.post("/api/cart", payload);
   return res.data;
 };

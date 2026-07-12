@@ -22,8 +22,6 @@ export default function ProductDetail() {
     getProduct(id)
       .then((p) => {
         setProduct(p);
-        // Related products come from the backend filtered by category —
-        // there's no client-side full catalog to filter anymore.
         return getProducts({ category: p.categoryId, limit: 5 });
       })
       .then((data) => {
@@ -95,13 +93,13 @@ export default function ProductDetail() {
               className="btn-primary"
               disabled={outOfStock}
               onClick={() => {
-                addToCart(product.id, qty);
-                navigate('/cart');
+                addToCart(product.id, 'product', qty);
+                navigate('/checkout');
               }}
             >
               {outOfStock ? 'Out of Stock' : 'Buy Now'}
             </button>
-            <button className="btn-ghost" disabled={outOfStock} onClick={() => addToCart(product.id, qty)}>🛒 Add to Cart</button>
+            <button className="btn-ghost" disabled={outOfStock} onClick={() => addToCart(product.id, 'product', qty)}>🛒 Add to Cart</button>
           </div>
         </div>
       </div>

@@ -1,7 +1,7 @@
 import { useNavigate } from "react-router-dom";
 import { useCart } from "../context/CartContext";
 
-const WHATSAPP_NUMBER = "923000000000"; // Replace with your number (no +)
+const WHATSAPP_NUMBER = "923000000000";
 
 export default function ProjectCard({ project }) {
   const navigate = useNavigate();
@@ -31,7 +31,10 @@ export default function ProjectCard({ project }) {
     <div
       className="product-card"
       onClick={goToProject}
-      style={{ position: "relative", cursor: "pointer" }}
+      style={{
+        position: "relative",
+        cursor: "pointer",
+      }}
     >
       {badgeLabel && (
         <div
@@ -100,8 +103,8 @@ export default function ProjectCard({ project }) {
           style={{
             display: "flex",
             justifyContent: "space-between",
-            marginBottom: "10px",
             alignItems: "center",
+            marginBottom: "10px",
           }}
         >
           <span
@@ -134,41 +137,56 @@ export default function ProjectCard({ project }) {
             }}
             onClick={(e) => {
               e.stopPropagation();
-              addToCart(project.id, 1);
+              addToCart(project.id, "project", 1);
+              navigate("/checkout");
             }}
           >
-            🛒 Add to Cart
+            Buy Now
           </button>
 
-          <a
+          <button
             className="btn-ghost"
-            href={whatsappLink}
-            target="_blank"
-            rel="noreferrer"
-            onClick={(e) => e.stopPropagation()}
             style={{
               flex: 1,
               padding: "9px",
               fontSize: "0.8rem",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              gap: "6px",
-              textDecoration: "none",
+            }}
+            onClick={(e) => {
+              e.stopPropagation();
+              addToCart(project.id, "project", 1);
             }}
           >
-            <svg
-              viewBox="0 0 24 24"
-              fill="currentColor"
-              width="15"
-              height="15"
-            >
-              <path d="M17.6 6.32A8.86 8.86 0 0 0 12.05 4a8.94 8.94 0 0 0-7.74 13.4L3 21l3.7-1.27a8.93 8.93 0 0 0 4.34 1.1h.01a8.94 8.94 0 0 0 8.93-8.93 8.87 8.87 0 0 0-2.38-5.58zM12.05 19.4h-.01a7.4 7.4 0 0 1-3.77-1.03l-.27-.16-2.8.95.94-2.73-.18-.28A7.42 7.42 0 1 1 19.5 12a7.45 7.45 0 0 1-7.45 7.4z" />
-            </svg>
-
-            WhatsApp
-          </a>
+            🛒 Add to Cart
+          </button>
         </div>
+
+        <a
+          href={whatsappLink}
+          target="_blank"
+          rel="noreferrer"
+          onClick={(e) => e.stopPropagation()}
+          className="btn-ghost"
+          style={{
+            display: "flex",
+            marginTop: "8px",
+            padding: "9px",
+            fontSize: "0.8rem",
+            alignItems: "center",
+            justifyContent: "center",
+            gap: "6px",
+            textDecoration: "none",
+          }}
+        >
+          <svg
+            viewBox="0 0 24 24"
+            fill="currentColor"
+            width="15"
+            height="15"
+          >
+            <path d="M17.6 6.32A8.86 8.86 0 0 0 12.05 4a8.94 8.94 0 0 0-7.74 13.4L3 21l3.7-1.27a8.93 8.93 0 0 0 4.34 1.1h.01a8.94 8.94 0 0 0 8.93-8.93 8.87 8.87 0 0 0-2.38-5.58zM12.05 19.4h-.01a7.4 7.4 0 0 1-3.77-1.03l-.27-.16-2.8.95.94-2.73-.18-.28A7.42 7.42 0 1 1 19.5 12a7.45 7.45 0 0 1-7.45 7.4z" />
+          </svg>
+          WhatsApp
+        </a>
       </div>
     </div>
   );

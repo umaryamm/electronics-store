@@ -17,24 +17,6 @@ const FEATURES = [
   ['Expert Support 24/7', 'Real people, real answers — anytime. Our tech-savvy support team is on call around the clock for you.'],
 ];
 
-const DUMMY_PROJECTS = [
-  { id: 'dummy-1', emoji: '🚁', badge: 'POPULAR', category: 'Drone Projects', name: 'FPV Racing Drone Build Kit', rating: 4.7, reviews: 89, difficulty: 'Advanced', duration: '5–6 Weeks', description: 'Placeholder project — real data coming soon.' },
-  { id: 'dummy-2', emoji: '🌡️', badge: 'POPULAR', category: 'IoT Projects', name: 'ESP32 Weather Station', rating: 4.5, reviews: 134, difficulty: 'Beginner', duration: '1–2 Weeks', description: 'Placeholder project — real data coming soon.' },
-  { id: 'dummy-3', emoji: '🔋', badge: 'POPULAR', category: 'Power Electronics', name: 'Solar MPPT Charge Controller', rating: 4.6, reviews: 58, difficulty: 'Intermediate', duration: '3–4 Weeks', description: 'Placeholder project — real data coming soon.' },
-  { id: 'dummy-4', emoji: '🚗', badge: 'POPULAR', category: 'Robotics Projects', name: 'Line-Following Robot Car', rating: 4.4, reviews: 210, difficulty: 'Beginner', duration: '1 Week', description: 'Placeholder project — real data coming soon.' },
-  { id: 'dummy-5', emoji: '🔐', badge: 'POPULAR', category: 'Security Systems', name: 'RFID Door Lock System', rating: 4.8, reviews: 96, difficulty: 'Intermediate', duration: '2–3 Weeks', description: 'Placeholder project — real data coming soon.' },
-  { id: 'dummy-6', emoji: '💧', badge: 'POPULAR', category: 'Smart Home Projects', name: 'Automatic Plant Watering System', rating: 4.5, reviews: 77, difficulty: 'Beginner', duration: '1–2 Weeks', description: 'Placeholder project — real data coming soon.' },
-];
-
-const DUMMY_LASERS = [
-  { id: 'laser-1', emoji: '🔦', badge: '-14%', category: 'Laser Modules', name: '40W Fixed Focus Laser Head 450nm TTL', rating: 4.6, reviews: 42, price: 40000, originalPrice: 46500, description: 'Placeholder — real data coming soon.' },
-  { id: 'laser-2', emoji: '🔦', badge: '-28%', category: 'Laser Modules', name: '20W Laser Module 450nm Engraving Head', rating: 4.7, reviews: 61, price: 25500, originalPrice: 35500, description: 'Placeholder — real data coming soon.' },
-  { id: 'laser-3', emoji: '🔦', badge: '-13%', category: 'Laser Modules', name: '15W 450nm 40mm Laser Module DIY CNC', rating: 4.5, reviews: 38, price: 32500, originalPrice: 37500, description: 'Placeholder — real data coming soon.' },
-  { id: 'laser-4', emoji: '🔦', badge: '-25%', category: 'Laser Modules', name: '10W/5500mW Laser Module 450nm', rating: 4.4, reviews: 55, price: 20000, originalPrice: 26500, description: 'Placeholder — real data coming soon.' },
-  { id: 'laser-5', emoji: '🔦', badge: '-9%', category: 'Laser Modules', name: '80W Laser Module with Air Assist 450nm', rating: 4.8, reviews: 29, price: 58500, originalPrice: 64500, description: 'Placeholder — real data coming soon.' },
-  { id: 'laser-6', emoji: '🔦', badge: 'NEW', category: 'Laser Modules', name: '5.5W Laser Engraver Module 445nm', rating: 4.3, reviews: 18, price: 14500, description: 'Placeholder — real data coming soon.' },
-];
-
 const MARQUEE = [
   'Free Delivery on Orders Above Rs 25,000',
   'New Arrivals Every Week',
@@ -42,14 +24,6 @@ const MARQUEE = [
   '24/7 Expert Support',
   '2-Year Warranty on All Devices',
   '0% Instalment Plans Available',
-];
-
-const MOCK_NEW_ARRIVALS = [
-  { id: 'na-1', type: 'product', name: 'ESP32-CAM WiFi Module', price: 2200, image: '', badge: 'NEW' },
-  { id: 'na-2', type: 'product', name: 'NEMA 17 Stepper Motor', price: 1450, image: '', badge: 'NEW' },
-  { id: 'na-3', type: 'project', name: 'Line-Following Robot Kit', price: 6800, image: '', badge: 'NEW' },
-  { id: 'na-4', type: 'product', name: '4K Mini Projector Module', price: 15500, image: '', badge: 'NEW' },
-  { id: 'na-5', type: 'project', name: 'Smart Home Automation Hub', price: 9200, image: '', badge: 'NEW' },
 ];
 
 export default function Home() {
@@ -70,21 +44,14 @@ export default function Home() {
   const laserCarouselRef = useRef(null);
 
   useEffect(() => {
-    // Pull a broad batch of live products (newest-first, the backend's
-    // default sort) so both "Featured" and "Laser Modules" reflect whatever
-    // is actually in the database — including anything admin just added —
-    // instead of the frozen public/products.json snapshot.
-    Promise.all([getProducts({ limit: 200 }), getCategories()])
-      .then(([productData, cats]) => {
+    Promise.all([getProducts({ limit: 200 }), getCategories(), loadProjects()])
+      .then(([productData, cats, projectData]) => {
         const products = (productData.products || []).map(normalizeProduct);
         setFeaturedProducts(products.slice(0, 8));
 
         const lasers = products.filter((p) => (p.category || '').toLowerCase().includes('laser'));
-        setLaserProducts((lasers.length > 0 ? lasers : DUMMY_LASERS).slice(0, 10));
+        setLaserProducts(lasers.slice(0, 10));
 
-        // The category endpoint only returns { id, name } — derive product
-        // counts client-side from the same batch so the carousel still shows
-        // "N products" per category.
         setCategories(
           cats.map((c) => ({
             ...c,
@@ -92,14 +59,23 @@ export default function Home() {
             count: products.filter((p) => p.categoryId === c.id).length,
           }))
         );
-      })
-      .catch((err) => console.error('Failed to load products/categories:', err));
 
-    loadProjects().then(({ projects }) => {
-      const popular = projects.filter((p) => p.badge === 'POPULAR');
-      setFeaturedProjects([...popular, ...DUMMY_PROJECTS].slice(0, 10));
-    });
-    setNewArrivals(MOCK_NEW_ARRIVALS);
+        const projects = projectData.projects || [];
+
+        // Prefer projects explicitly tagged "POPULAR"; if none are tagged
+        // yet, fall back to showing all real projects. No dummy data.
+        const popular = projects.filter((p) => p.badge === 'POPULAR');
+        setFeaturedProjects((popular.length > 0 ? popular : projects).slice(0, 10));
+
+        // New Arrivals: newest real products + real projects, rendered
+        // through the same ProductCard/ProjectCard used everywhere else.
+        const arrivals = [
+          ...products.slice(0, 3).map((p) => ({ ...p, kind: 'product' })),
+          ...projects.slice(0, 2).map((p) => ({ ...p, kind: 'project' })),
+        ];
+        setNewArrivals(arrivals);
+      })
+      .catch((err) => console.error('Failed to load homepage data:', err));
   }, []);
 
   // Auto-advance the featured carousel
@@ -330,57 +306,11 @@ export default function Home() {
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="15 18 9 12 15 6" /></svg>
             </button>
             <div className="product-carousel" ref={newArrivalsRef}>
-              {newArrivals.map((item) => (
-                <div key={item.id} className="product-card">
-                  <div style={{ position: 'absolute', top: '10px', left: '10px', background: 'var(--cyan)', color: '#000', fontSize: '0.7rem', fontWeight: 700, padding: '3px 8px', borderRadius: '6px', zIndex: 1 }}>
-                    NEW
-                  </div>
-                  <div
-                    onClick={() => navigate(item.type === 'project' ? `/project/${item.id}` : `/products/${item.id}`)}
-                    style={{ width: '100%', aspectRatio: '1', background: 'var(--bg3)', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', cursor: 'pointer' }}
-                  >
-                    {item.image ? (
-                      <img src={item.image} alt={item.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                    ) : (
-                      <span style={{ fontSize: '0.75rem', color: 'var(--text-sub)' }}>{item.type === 'project' ? 'Project' : 'Product'}</span>
-                    )}
-                  </div>
-                  <div style={{ padding: '12px 4px 4px' }}>
-                    <div
-                      onClick={() => navigate(item.type === 'project' ? `/project/${item.id}` : `/products/${item.id}`)}
-                      style={{ fontSize: '0.9rem', fontWeight: 600, marginBottom: '4px', cursor: 'pointer' }}
-                    >
-                      {item.name}
-                    </div>
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px' }}>
-                      <span style={{ fontSize: '0.95rem', color: 'var(--cyan)', fontWeight: 700 }}>Rs {item.price.toLocaleString()}</span>
-                      <button
-                        onClick={(e) => e.stopPropagation()}
-                        style={{ width: '32px', height: '32px', borderRadius: '8px', background: 'var(--bg3)', border: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
-                        aria-label="Add to cart"
-                      >
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>
-                      </button>
-                    </div>
-                    <div style={{ display: 'flex', gap: '8px' }}>
-                      <button
-                        onClick={(e) => { e.stopPropagation(); navigate(item.type === 'project' ? `/project/${item.id}` : `/products/${item.id}`); }}
-                        className="btn-primary"
-                        style={{ flex: 1, padding: '9px', fontSize: '0.8rem' }}
-                      >
-                        Buy Now
-                      </button>
-                      <button
-                        onClick={(e) => { e.stopPropagation(); navigate(item.type === 'project' ? `/project/${item.id}` : `/products/${item.id}`); }}
-                        className="btn-ghost"
-                        style={{ flex: 1, padding: '9px', fontSize: '0.8rem' }}
-                      >
-                        Quick View
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              ))}
+              {newArrivals.map((item) =>
+                item.kind === 'project'
+                  ? <ProjectCard key={`arrival-project-${item.id}`} project={item} />
+                  : <ProductCard key={`arrival-product-${item.id}`} product={item} />
+              )}
             </div>
             <button className="carousel-arrow next" onClick={() => scrollNewArrivals(1)} aria-label="Next">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="9 18 15 12 9 6" /></svg>

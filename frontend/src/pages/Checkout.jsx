@@ -3,7 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
 import { getAddresses, saveAddress } from '../api/addressService';
-import { checkout } from '../api/orderService';
+import { getShippingOptions, checkout } from '../api/orderService';
 import { formatPrice } from '../data/catalog';
 
 export default function Checkout() {
@@ -12,37 +12,45 @@ export default function Checkout() {
   const navigate = useNavigate();
   const location = useLocation();
 
-  const shippingOption = location.state?.shippingOption;
   const addressOverrideFromCart = location.state?.addressOverride || null;
+
+  const [shippingOptions, setShippingOptions] = useState([]);
+  const [shippingOption, setShippingOption] = useState(location.state?.shippingOption || null);
 
   const [savedAddress, setSavedAddress] = useState(null);
   const [editing, setEditing] = useState(false);
   const [form, setForm] = useState({ fullName: '', street: '', city: '', phone: '' });
 
   const [loadingAddress, setLoadingAddress] = useState(!addressOverrideFromCart);
+  const [loadingShipping, setLoadingShipping] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [placed, setPlaced] = useState(false);
   const [placedOrderId, setPlacedOrderId] = useState(null);
   const [error, setError] = useState(null);
 
-  // shippingCost/tax were already computed in Cart.jsx for display, but we don't
-  // trust them here — the backend recomputes from shippingOption + subtotal server-side.
-  // This is just for the on-screen summary, not what's sent to the API.
-  const shippingCostDisplay = subtotal > 0 ? 350 : 0; // rough default; real value comes back in the order response
+  useEffect(() => {
+    // Fetch shipping options regardless of how we got here — "Buy Now"
+    // skips the Cart page entirely, so there may be no pre-selected
+    // option yet. Default to the first one instead of bouncing to /cart.
+    getShippingOptions()
+      .then((opts) => {
+        setShippingOptions(opts);
+        if (!location.state?.shippingOption && opts.length > 0) {
+          setShippingOption(opts[0].key);
+        }
+      })
+      .finally(() => setLoadingShipping(false));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
-    if (!shippingOption) {
-      // Someone landed here directly without going through Cart's shipping picker
-      navigate('/cart');
-      return;
-    }
     if (cart.length === 0 && !placed) {
       navigate('/cart');
       return;
     }
     if (addressOverrideFromCart) {
       setLoadingAddress(false);
-      return; // skip fetching saved address — cart override takes priority
+      return;
     }
     (async () => {
       try {
@@ -73,6 +81,12 @@ export default function Checkout() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError(null);
+
+    if (!shippingOption) {
+      setError('Please select a shipping method.');
+      return;
+    }
+
     setSubmitting(true);
 
     try {
@@ -118,7 +132,7 @@ export default function Checkout() {
     );
   }
 
-  if (loadingAddress) return <div className="container" style={{ padding: '80px 0' }} />;
+  if (loadingAddress || loadingShipping) return <div className="container" style={{ padding: '80px 0' }} />;
 
   return (
     <div className="container" style={{ paddingBottom: '80px' }}>
@@ -180,6 +194,22 @@ export default function Checkout() {
               )}
             </div>
           )}
+
+          <h3 style={{ margin: '24px 0 10px' }}>Shipping Method</h3>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+            {shippingOptions.map((opt) => (
+              <label key={opt.key} style={{ display: 'block', fontSize: '0.85rem', border: '1px solid #ddd', borderRadius: '8px', padding: '10px 12px', cursor: 'pointer' }}>
+                <input
+                  type="radio"
+                  name="shippingOption"
+                  checked={shippingOption === opt.key}
+                  onChange={() => setShippingOption(opt.key)}
+                  style={{ marginRight: '8px' }}
+                />
+                {opt.label}{opt.taxable ? ' (COD 4% tax applies)' : ''}: <strong>{formatPrice(opt.cost)}</strong>
+              </label>
+            ))}
+          </div>
 
           <h3 style={{ margin: '24px 0 10px' }}>Payment Method</h3>
           <div style={{ border: '1px solid #ddd', borderRadius: '8px', padding: '14px 16px' }}>

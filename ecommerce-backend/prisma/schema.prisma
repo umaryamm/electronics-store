@@ -68,13 +68,12 @@ model CartItem {
   projectId Int?
   cart      Cart         @relation(fields: [cartId], references: [id], onDelete: Cascade)
   product   Product?     @relation(fields: [productId], references: [id])
-  Project   Project?     @relation(fields: [projectId], references: [id])
+  project   Project?     @relation(fields: [projectId], references: [id])
 
   @@unique([cartId, productId, itemType])
   @@unique([cartId, projectId, itemType])
   @@index([cartId])
 }
-
 model Order {
   id              Int         @id @default(autoincrement())
   userId          Int

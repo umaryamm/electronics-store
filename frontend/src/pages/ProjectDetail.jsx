@@ -27,7 +27,6 @@ export default function ProjectDetail() {
         }
         setProject(found);
 
-        // Related projects: same category, excluding this one.
         return getProjects({ category: found.category }).then((relRes) => {
           const sameCategory = (relRes.projects || []).filter(
             (p) => String(p.id) !== String(id)
@@ -106,21 +105,16 @@ export default function ProjectDetail() {
           )}
 
           <div className="qty-select-detail">
-            <div className="qty-control">
-              <button onClick={() => setQty((q) => Math.max(1, q - 1))}>−</button>
-              <span>{qty}</span>
-              <button onClick={() => setQty((q) => q + 1)}>+</button>
-            </div>
             <button
               className="btn-primary"
               onClick={() => {
-                addToCart(project.id, qty);
-                navigate('/cart');
+                addToCart(project.id, 'project', 1);
+                navigate('/checkout');
               }}
             >
               Buy Now
             </button>
-            <button className="btn-ghost" onClick={() => addToCart(project.id, qty)}>🛒 Add to Cart</button>
+            <button className="btn-ghost" onClick={() => addToCart(project.id, 'project', 1)}>🛒 Add to Cart</button>
           </div>
 
           <Link to="/contact" className="btn-ghost" style={{ display: 'inline-flex', marginTop: '14px' }}>

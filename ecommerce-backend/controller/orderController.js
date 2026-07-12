@@ -1,4 +1,5 @@
 const prisma = require("../prisma/client");
+const { sendOrderConfirmation } = require("../utils/sendOrderConfirmation");
 
 const SHIPPING_OPTIONS = {
   daewoo:     { label: "Delivery via Daewoo FastEx", cost: 350, taxable: true },
@@ -132,6 +133,11 @@ exports.checkout = async (req, res) => {
 
         res.status(201).json({ message: "Order placed successfully.", order: fullOrder });
 
+        const user = await prisma.user.findUnique({ where: { id: userId } });
+        if (user?.email) {
+            sendOrderConfirmation(fullOrder, user.email);
+        }
+
     } catch (error) {
         console.error(error);
         res.status(500).json({ message: "Server Error" });
@@ -144,23 +150,6 @@ exports.getMyOrders = async (req, res) => {
         const orders = await prisma.order.findMany({
             where: { userId },
             include: { items: true },
-            orderBy: { createdAt: "desc" }
-        });
-        res.json(orders);
-    } catch (error) {
-        console.error(error);
-        res.status(500).json({ message: "Server Error" });
-    }
-};
-
-// Admin only — list every order, with customer info included
-exports.getAllOrders = async (req, res) => {
-    try {
-        const orders = await prisma.order.findMany({
-            include: {
-                items: true,
-                user: { select: { id: true, name: true, email: true } }
-            },
             orderBy: { createdAt: "desc" }
         });
         res.json(orders);
@@ -185,6 +174,23 @@ exports.getOrderById = async (req, res) => {
         if (order.userId !== userId) return res.status(403).json({ message: "Forbidden." });
 
         res.json(order);
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: "Server Error" });
+    }
+};
+
+// Admin only — list every order, with customer info included
+exports.getAllOrders = async (req, res) => {
+    try {
+        const orders = await prisma.order.findMany({
+            include: {
+                items: true,
+                user: { select: { id: true, name: true, email: true } }
+            },
+            orderBy: { createdAt: "desc" }
+        });
+        res.json(orders);
     } catch (error) {
         console.error(error);
         res.status(500).json({ message: "Server Error" });
