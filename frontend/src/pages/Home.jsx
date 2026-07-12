@@ -59,6 +59,11 @@ export default function Home() {
   const [laserCategoryId, setLaserCategoryId] = useState(null);
   const [hoveredFeature, setHoveredFeature] = useState(null);
   const [pressedFeature, setPressedFeature] = useState(null);
+
+  // ─── Live counts for the hero stats (replaces the hardcoded 100+ / 50+) ───
+  const [productCount, setProductCount] = useState(0);
+  const [projectCount, setProjectCount] = useState(0);
+
   const navigate = useNavigate();
 
   // ─── Carousels References ───
@@ -85,6 +90,12 @@ export default function Home() {
       .then(([productData, cats, projectData]) => {
         const products = (productData.products || []).map(normalizeProduct);
         const projects = projectData.projects || [];
+
+        // ── Hero Stats (live counts) ──
+        // Prefer the backend's unpaginated total if it sends one; otherwise
+        // fall back to the number of items we actually fetched.
+        setProductCount(productData.total ?? productData.count ?? products.length);
+        setProjectCount(projectData.total ?? projectData.count ?? projects.length);
 
         // ── Featured Products ──
         setFeaturedProducts(products.slice(0, 8));
@@ -121,7 +132,7 @@ export default function Home() {
             });
         } else {
           console.warn(
-            `[Laser] No category matching "${Laser-Modules}" exists in the DB — section hidden.`
+            `[Laser] No category matching "${LASER_CATEGORY_NAME}" exists in the DB — section hidden.`
           );
           setLaserCategoryId(null);
           setLaserProducts([]);
@@ -328,7 +339,7 @@ export default function Home() {
   return (
     <>
       <section className="hero" style={{ paddingTop: '64px' }}>
-        <div className="hero-eyebrow">✨ New Collection Live Now</div>
+        <div className="hero-eyebrow">✨ New 2025 Collection Live Now</div>
         <h1>See the <span>Future</span> of Technology</h1>
         <p>
           From 3D printers to Arduino modules and robotics parts — Vision Giants brings you the sharpest
@@ -340,7 +351,11 @@ export default function Home() {
           <button className="btn-ghost" onClick={() => navigate('/contact')}>Get in Touch</button>
         </div>
         <div style={{ display: 'flex', gap: '32px', justifyContent: 'center', marginTop: '48px' }}>
-          {[['100+', 'Products'], ['50+', 'Projects'], ['98%', 'Satisfaction']].map(([val, label]) => (
+          {[
+            [productCount, 'Products'],
+            [projectCount, 'Projects'],
+            ['98%', 'Satisfaction'],
+          ].map(([val, label]) => (
             <div key={label}>
               <div style={{ fontFamily: 'Orbitron, monospace', fontWeight: 700, fontSize: '1.4rem', color: 'var(--cyan)' }}>{val}</div>
               <div style={{ fontSize: '0.78rem', color: 'var(--gray-mid)' }}>{label}</div>
