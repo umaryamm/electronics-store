@@ -1,0 +1,33 @@
+version: "3.9"
+
+services:
+  backend:
+    build:
+      context: ./ecommerce-backend
+    ports:
+      - "5000:5000"
+    env_file:
+      - ./ecommerce-backend/.env
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ./frontend
+      args:
+        VITE_API_URL: http://localhost:5000
+    ports:
+      - "3000:3000"
+    depends_on:
+      - backend
+    restart: unless-stopped
+
+  admin:
+    build:
+      context: ./admin/AdminDashboard
+      args:
+        VITE_API_URL: http://localhost:5000
+    ports:
+      - "3001:3001"
+    depends_on:
+      - backend
+    restart: unless-stopped

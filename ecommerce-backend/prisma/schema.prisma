@@ -74,6 +74,7 @@ model CartItem {
   @@unique([cartId, projectId, itemType])
   @@index([cartId])
 }
+
 model Order {
   id              Int         @id @default(autoincrement())
   userId          Int

@@ -25,11 +25,15 @@ app.use(express.json());
 // your frontend/admin ever spins up on a different port.
 // ---------------------------------------------------------------------
 const allowedOrigins = [
+  "http://localhost:3000",
+  "http://localhost:3001",
   "http://localhost:5173",
   "http://localhost:5174",
   "http://localhost:5175",
   "http://localhost:5176",
   "http://localhost:5000",
+  "https://jelectronics.store",
+  "https://www.jelectronics.store",
 ];
 
 app.use(cors({
